@@ -1,0 +1,48 @@
+name: rep_counter
+description: Rep AI - AI-powered rep counter with form validation using on-device pose detection.
+publish_to: 'none'
+version: 2.0.0+3
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Pose Detection ---
+  google_mlkit_pose_detection: ^0.12.0    # On-device pose detection (33 landmarks)
+  camera: ^0.11.0+2                        # Camera access
+
+  # --- Local Storage ---
+  sqflite: ^2.3.2                          # SQLite database for workout history
+  path: ^1.9.0                             # File path utilities
+  path_provider: ^2.1.2                    # App data directory access
+
+  # --- UI & State ---
+  provider: ^6.1.1                         # State management
+  fl_chart: ^0.68.0                        # Charts for progress tracking
+  intl: ^0.19.0                            # Date formatting
+
+  # --- Utilities ---
+  uuid: ^4.3.3                             # Unique IDs for workout sessions
+  permission_handler: ^11.3.0              # Camera permission handling
+  wakelock_plus: ^1.2.10                  # Keep screen on during workout/recording
+  shared_preferences: ^2.2.2              # Onboarding flag & local settings
+  audioplayers: ^6.1.0                    # Audio feedback for reps
+  sqflite_common_ffi: ^2.4.0+2
+  tflite_flutter: ^0.12.0                 # Run the trained push-up classifier on-device
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  rename: ^3.1.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/models/pushup_classifier.tflite
+    - assets/models/pushup_labels.txt
+    - assets/sounds/

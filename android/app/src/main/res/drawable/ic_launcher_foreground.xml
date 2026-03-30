@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Dumbbell with 2 plates per side (large inner, small outer), rotated 45 degrees -->
+    <!-- Scaled down 20% to appear smaller within the icon -->
+    <group
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        android:pivotX="54"
+        android:pivotY="54">
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="45">
+            <!-- Left small outer plate -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M20,44 L26,44 Q27,44 27,45 L27,63 Q27,64 26,64 L20,64 Q19,64 19,63 L19,45 Q19,44 20,44 Z" />
+            <!-- Left large inner plate -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M29,38 L37,38 Q38,38 38,39 L38,69 Q38,70 37,70 L29,70 Q28,70 28,69 L28,39 Q28,38 29,38 Z" />
+            <!-- Bar -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M38,50 L70,50 L70,58 L38,58 Z" />
+            <!-- Right large inner plate -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M71,38 L79,38 Q80,38 80,39 L80,69 Q80,70 79,70 L71,70 Q70,70 70,69 L70,39 Q70,38 71,38 Z" />
+            <!-- Right small outer plate -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M82,44 L88,44 Q89,44 89,45 L89,63 Q89,64 88,64 L82,64 Q81,64 81,63 L81,45 Q81,44 82,44 Z" />
+        </group>
+    </group>
+</vector>
