@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Rep AI uses your camera to track your movement and count reps in real time.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Rep AI may use the microphone for audio feedback during workouts.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Rep AI uses motion data to improve rep counting accuracy.</string>
 </dict>
 </plist>
