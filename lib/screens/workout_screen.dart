@@ -5,6 +5,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -218,7 +219,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         camera,
         ResolutionPreset.veryHigh,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.nv21,
+        // nv21 is Android-only; iOS requires bgra8888
+        imageFormatGroup: Platform.isIOS
+            ? ImageFormatGroup.bgra8888
+            : ImageFormatGroup.nv21,
       );
 
       await _cameraController!.initialize();
