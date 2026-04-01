@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 import '../services/workout_state.dart';
@@ -1182,6 +1183,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Workout Buttons ───────────────────────────────────────────────────
 
+  Future<void> _launchWorkout({String exercise = 'Push-ups', bool setup = false}) async {
+    // Request camera permission before navigating — so iOS shows the dialog
+    final status = await Permission.camera.request();
+    if (!mounted) return;
+    if (status.isPermanentlyDenied) {
+      // User has permanently denied — show a dialog pointing them to settings
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Camera Access Required'),
+          content: const Text(
+            'Rep AI needs camera access to count your reps.\n\n'
+            'Go to: Settings → Privacy & Security → Camera → Rep AI, then toggle it on.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    context.read<WorkoutState>().startSession(exercise: exercise);
+    if (setup) {
+      Navigator.pushNamed(context, '/setup').then((_) => _loadData());
+    } else {
+      Navigator.pushNamed(context, '/workout').then((_) => _loadData());
+    }
+  }
+
   Widget _buildWorkoutButtons(BuildContext context) {
     return Column(
       children: [
@@ -1189,13 +1229,7 @@ class _HomeScreenState extends State<HomeScreen> {
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: () {
-              context
-                  .read<WorkoutState>()
-                  .startSession(exercise: 'Push-ups');
-              Navigator.pushNamed(context, '/workout')
-                  .then((_) => _loadData());
-            },
+            onPressed: () => _launchWorkout(),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               shape: RoundedRectangleBorder(
@@ -1218,10 +1252,7 @@ class _HomeScreenState extends State<HomeScreen> {
           width: double.infinity,
           height: 56,
           child: OutlinedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/setup')
-                  .then((_) => _loadData());
-            },
+            onPressed: () => _launchWorkout(setup: true),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF2563EB),
               side: const BorderSide(color: Color(0xFF2563EB)),
