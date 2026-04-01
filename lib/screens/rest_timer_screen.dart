@@ -69,7 +69,7 @@ class _RestTimerScreenState extends State<RestTimerScreen> {
     final isLand = mq.size.width > mq.size.height;
     final circleSize =
         (isLand ? mq.size.height * 0.35 : mq.size.width * 0.38)
-            .clamp(80.0, 180.0);
+            .clamp(80.0, 260.0);
     final timerFont = circleSize * 0.24;
 
     return PopScope(
@@ -77,6 +77,8 @@ class _RestTimerScreenState extends State<RestTimerScreen> {
       child: Scaffold(
         body: SafeArea(
           child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
             child: SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.symmetric(
@@ -150,6 +152,7 @@ class _RestTimerScreenState extends State<RestTimerScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),

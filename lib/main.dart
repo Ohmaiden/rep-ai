@@ -153,33 +153,42 @@ class _MainShellState extends State<MainShell> {
           SettingsScreen(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onTap,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF0F172A),
-        selectedItemColor: const Color(0xFF2563EB),
-        unselectedItemColor: Colors.white54,
-        selectedFontSize: 12,
-        unselectedFontSize: 11,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        color: const Color(0xFF0F172A),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: _onTap,
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: const Color(0xFF0F172A),
+              selectedItemColor: const Color(0xFF2563EB),
+              unselectedItemColor: Colors.white54,
+              selectedFontSize: 12,
+              unselectedFontSize: 11,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.fitness_center_rounded),
+                  label: 'Workout',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart_rounded),
+                  label: 'History',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings_rounded),
+                  label: 'Settings',
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center_rounded),
-            label: 'Workout',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }

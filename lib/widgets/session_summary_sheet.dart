@@ -44,6 +44,9 @@ class SessionSummarySheet extends StatelessWidget {
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(24)),
           ),
+          child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 700),
           child: ListView(
             controller: scrollController,
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
@@ -263,6 +266,8 @@ class SessionSummarySheet extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          ),
           ),
         );
       },

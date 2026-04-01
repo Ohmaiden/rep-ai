@@ -30,7 +30,10 @@ class TotalRepsDetailScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Reps by Day')),
       body: sorted.isEmpty
           ? const Center(child: Text('No workouts yet'))
-          : ListView.builder(
+          : Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: sorted.length,
               itemBuilder: (context, i) {
@@ -60,6 +63,8 @@ class TotalRepsDetailScreen extends StatelessWidget {
                 );
               },
             ),
+            ),
+            ),
     );
   }
 }
@@ -79,7 +84,10 @@ class MostRepsDetailScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Rep Leaderboard')),
       body: ranked.isEmpty
           ? const Center(child: Text('No workouts yet'))
-          : ListView.builder(
+          : Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: ranked.length,
               itemBuilder: (context, i) {
@@ -117,6 +125,8 @@ class MostRepsDetailScreen extends StatelessWidget {
                   ),
                 );
               },
+            ),
+            ),
             ),
     );
   }
@@ -157,6 +167,9 @@ class CalendarDayDetailSheet extends StatelessWidget {
       expand: false,
       builder: (context, scrollController) {
         return SafeArea(
+          child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 700),
           child: ListView(
             controller: scrollController,
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -225,6 +238,8 @@ class CalendarDayDetailSheet extends StatelessWidget {
                     ),
                   )),
             ],
+          ),
+          ),
           ),
         );
       },

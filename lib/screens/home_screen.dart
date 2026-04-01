@@ -184,6 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _loadData,
+                  child: Center(
+                  child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 700),
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
@@ -358,6 +361,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: SizedBox(height: 40)),
                     ],
                   ),
+                  ),
+                  ),
                 ),
         ),
       ),
@@ -440,89 +445,95 @@ class _HomeScreenState extends State<HomeScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              DateFormat('MMMM yyyy').format(now),
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            // Day labels
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                  .map((d) => SizedBox(
-                        width: 36,
-                        child: Center(
-                          child: Text(d,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.textTheme.bodyMedium
-                                      ?.color)),
-                        ),
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 8),
-            // Calendar grid
-            ...List.generate(
-              ((daysInMonth + startWeekday + 6) ~/ 7),
-              (week) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cellSize = ((constraints.maxWidth - 32) / 7).clamp(36.0, 52.0);
+            final fontSize = (cellSize * 0.36).clamp(12.0, 16.0);
+            return Column(
+              children: [
+                Text(
+                  DateFormat('MMMM yyyy').format(now),
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                // Day labels
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(7, (dow) {
-                    final dayNum = week * 7 + dow - startWeekday + 1;
-                    if (dayNum < 1 || dayNum > daysInMonth) {
-                      return const SizedBox(width: 36, height: 36);
-                    }
-                    final date =
-                        DateTime(now.year, now.month, dayNum);
-                    final hasWorkout = _workoutDates.contains(date);
-                    final isToday = dayNum == now.day;
+                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                      .map((d) => SizedBox(
+                            width: cellSize,
+                            child: Center(
+                              child: Text(d,
+                                  style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.textTheme.bodyMedium
+                                          ?.color)),
+                            ),
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 8),
+                // Calendar grid
+                ...List.generate(
+                  ((daysInMonth + startWeekday + 6) ~/ 7),
+                  (week) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: List.generate(7, (dow) {
+                        final dayNum = week * 7 + dow - startWeekday + 1;
+                        if (dayNum < 1 || dayNum > daysInMonth) {
+                          return SizedBox(width: cellSize, height: cellSize);
+                        }
+                        final date =
+                            DateTime(now.year, now.month, dayNum);
+                        final hasWorkout = _workoutDates.contains(date);
+                        final isToday = dayNum == now.day;
 
-                    return GestureDetector(
-                      onTap: hasWorkout
-                          ? () => _openCalendarDay(date)
-                          : null,
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: hasWorkout
-                              ? const Color(0xFF2563EB)
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                          border: isToday && !hasWorkout
-                              ? Border.all(
-                                  color: const Color(0xFF2563EB),
-                                  width: 2)
+                        return GestureDetector(
+                          onTap: hasWorkout
+                              ? () => _openCalendarDay(date)
                               : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$dayNum',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: hasWorkout || isToday
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
+                          child: Container(
+                            width: cellSize,
+                            height: cellSize,
+                            decoration: BoxDecoration(
                               color: hasWorkout
-                                  ? Colors.white
-                                  : (isDark
-                                      ? Colors.white70
-                                      : const Color(0xFF334155)),
+                                  ? const Color(0xFF2563EB)
+                                  : Colors.transparent,
+                              shape: BoxShape.circle,
+                              border: isToday && !hasWorkout
+                                  ? Border.all(
+                                      color: const Color(0xFF2563EB),
+                                      width: 2)
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '$dayNum',
+                                style: TextStyle(
+                                  fontSize: fontSize,
+                                  fontWeight: hasWorkout || isToday
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                  color: hasWorkout
+                                      ? Colors.white
+                                      : (isDark
+                                          ? Colors.white70
+                                          : const Color(0xFF334155)),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }),
+                        );
+                      }),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1326,7 +1337,10 @@ class _RepBreakdownScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Rep Breakdown')),
-      body: ListView.separated(
+      body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700),
+      child: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -1355,6 +1369,8 @@ class _RepBreakdownScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+      ),
       ),
     );
   }
@@ -1407,6 +1423,9 @@ class _GoalBreakdownScreenState extends State<_GoalBreakdownScreen> {
         title: Text(isWeekly ? 'Daily Breakdown' : 'Weekly Breakdown'),
       ),
       body: SafeArea(
+        child: Center(
+        child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700),
         child: ListView(
           padding: EdgeInsets.only(
             left: 20,
@@ -1479,6 +1498,8 @@ class _GoalBreakdownScreenState extends State<_GoalBreakdownScreen> {
               ),
             ),
           ],
+        ),
+        ),
         ),
       ),
     );

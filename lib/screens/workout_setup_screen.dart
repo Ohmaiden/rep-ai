@@ -26,6 +26,9 @@ class _WorkoutSetupScreenState extends State<WorkoutSetupScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Custom Workout')),
       body: SafeArea(
+        child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -115,6 +118,8 @@ class _WorkoutSetupScreenState extends State<WorkoutSetupScreen> {
               ),
             ],
           ),
+        ),
+        ),
         ),
       ),
     );

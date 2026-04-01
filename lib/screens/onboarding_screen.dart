@@ -73,6 +73,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextPage() {
+    // If leaving the fitness level page with nothing selected, default to beginner
+    if (_page == 1 && _selectedFitnessLevel == null) {
+      setState(() {
+        _selectedFitnessLevel = 'beginner';
+        _weeklyReps = 50;
+      });
+    }
     _controller.nextPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -251,7 +258,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView(
                 controller: _controller,
-                physics: const ClampingScrollPhysics(),
+                physics: const PageScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
                   _buildWelcomePage(),
@@ -287,9 +294,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // Bottom button — hidden on fitness level page (auto-advances)
-            // and goal setter page (has its own).
-            if (_page != 1 && _page != 5)
+            // Bottom button — hidden on goal setter page (has its own Start button).
+            if (_page != 5)
               Padding(
                 padding: EdgeInsets.fromLTRB(
                     24, 0, 24, isLandscape ? 8.0 : 32.0),
@@ -322,7 +328,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               )
             else
-              SizedBox(height: isLandscape ? 8.0 : 32.0),
+              const SizedBox.shrink(),
           ],
         ),
       ),

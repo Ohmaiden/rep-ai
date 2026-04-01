@@ -178,6 +178,9 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
         body: Stack(
           children: [
             SafeArea(
+              child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
               child: LayoutBuilder(
                 builder: (context, constraints) => Column(
                   children: [
@@ -438,6 +441,8 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                   ],
                 ),
               ),
+            ),
+            ),
             ),
 
             // ── Confetti overlay (pointer-transparent, renders on top) ──────

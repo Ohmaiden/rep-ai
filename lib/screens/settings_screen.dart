@@ -54,7 +54,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+      body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700),
+      child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // ── Goals ────────────────────────────────────────────────────
@@ -96,6 +99,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _themeTile(context, themeProvider, 'Dark', ThemeMode.dark,
               Icons.dark_mode),
         ],
+      ),
+      ),
       ),
     );
   }

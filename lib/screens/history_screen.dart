@@ -141,6 +141,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ? _buildEmpty()
                   : RefreshIndicator(
                       onRefresh: _loadData,
+                      child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 700),
                       child: ListView(
                         padding: EdgeInsets.only(
                           left: 20,
@@ -163,6 +166,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           const SizedBox(height: 12),
                           ..._allSessions.map((s) => _buildSessionCard(s)),
                         ],
+                      ),
+                      ),
                       ),
                     ),
         ),
