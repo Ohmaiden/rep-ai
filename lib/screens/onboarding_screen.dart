@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
+import '../main.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -58,7 +59,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MainShell(),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
+        (_) => false,
+      );
     }
   }
 
@@ -68,7 +77,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await prefs.setString('fitness_level', 'beginner');
     await prefs.setBool('onboarding_done', true);
     if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MainShell(),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
+        (_) => false,
+      );
     }
   }
 
