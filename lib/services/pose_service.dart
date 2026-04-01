@@ -4,6 +4,8 @@
 /// Converts ML Kit landmarks into the same format our PushUpAnalyzer expects.
 library;
 
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -195,24 +197,53 @@ class PoseDetectionService {
   }
 
   /// Convert CameraImage to ML Kit's InputImage format.
+  /// Handles both Android (NV21) and iOS (BGRA8888) formats.
   InputImage? _convertCameraImage(
     CameraImage image,
     CameraDescription camera,
     int sensorOrientation,
   ) {
-    // Determine rotation based on camera sensor orientation
-    final rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
-    if (rotation == null) return null;
+    if (image.planes.isEmpty) return null;
 
     // Get the image format
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
     if (format == null) return null;
 
-    // For YUV420 images (most common from camera)
-    if (image.planes.isEmpty) return null;
+    // Determine rotation
+    // On iOS the sensor is always 90°, but we need to account for
+    // the camera lens direction too.
+    InputImageRotation rotation;
+    if (Platform.isIOS) {
+      // iOS front camera: mirror + 270 to get upright
+      rotation = camera.lensDirection == CameraLensDirection.front
+          ? InputImageRotation.rotation270deg
+          : InputImageRotation.rotation90deg;
+    } else {
+      final r = InputImageRotationValue.fromRawValue(sensorOrientation);
+      if (r == null) return null;
+      rotation = r;
+    }
+
+    // On iOS with bgra8888, all data is in a single plane.
+    // On Android with NV21/YUV420, we may need to concatenate planes.
+    final Uint8List bytes;
+    if (image.planes.length == 1) {
+      bytes = image.planes.first.bytes;
+    } else {
+      // Concatenate all planes (Android YUV420)
+      final allBytes = image.planes.map((p) => p.bytes).toList();
+      final totalLength = allBytes.fold<int>(0, (sum, b) => sum + b.length);
+      final merged = Uint8List(totalLength);
+      int offset = 0;
+      for (final plane in allBytes) {
+        merged.setRange(offset, offset + plane.length, plane);
+        offset += plane.length;
+      }
+      bytes = merged;
+    }
 
     return InputImage.fromBytes(
-      bytes: image.planes.first.bytes,
+      bytes: bytes,
       metadata: InputImageMetadata(
         size: ui.Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
