@@ -66,12 +66,11 @@ class PoseDetectionService {
       // Take the first detected pose
       final pose = poses.first;
 
-      // Use a lower visibility threshold in landscape to compensate for
-      // the rotated image space making landmarks harder to detect.
-      final minLikelihood = (deviceAngle == 90 || deviceAngle == 270) ? 0.5 : 0.6;
+      // iOS bgra8888 tends to produce lower likelihood scores than Android NV21.
+      // Lower the threshold on iOS to avoid filtering out valid detections.
+      final minLikelihood = Platform.isIOS ? 0.3 : (deviceAngle == 90 || deviceAngle == 270) ? 0.5 : 0.6;
 
       // Reject the frame if the key push-up joints aren't clearly visible.
-      // This filters out bad detections, out-of-frame limbs, and background people.
       if (!_keyJointsVisible(pose, minLikelihood: minLikelihood)) {
         _isBusy = false;
         return null;
@@ -209,15 +208,29 @@ class PoseDetectionService {
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
     if (format == null) return null;
 
-    // Determine rotation
-    // On iOS the sensor is always 90°, but we need to account for
-    // the camera lens direction too.
+    // Determine rotation.
+    // On iOS, ML Kit needs the rotation that accounts for both the sensor
+    // orientation and the camera direction. The front camera on iOS is
+    // mirrored, so the effective rotation differs from the back camera.
     InputImageRotation rotation;
     if (Platform.isIOS) {
-      // iOS front camera: mirror + 270 to get upright
-      rotation = camera.lensDirection == CameraLensDirection.front
-          ? InputImageRotation.rotation270deg
-          : InputImageRotation.rotation90deg;
+      if (camera.lensDirection == CameraLensDirection.front) {
+        // Front camera on iOS: sensor is 90°, front is mirrored
+        // Portrait: use 270 (equivalent to -90 / mirror of 90)
+        // Landscape left (deviceAngle 90): use 0
+        // Landscape right (deviceAngle 270): use 180
+        if (sensorOrientation == 90) {
+          rotation = InputImageRotation.rotation270deg;
+        } else if (sensorOrientation == 270) {
+          rotation = InputImageRotation.rotation90deg;
+        } else {
+          rotation = InputImageRotation.rotation0deg;
+        }
+      } else {
+        // Back camera on iOS
+        final r = InputImageRotationValue.fromRawValue(sensorOrientation);
+        rotation = r ?? InputImageRotation.rotation90deg;
+      }
     } else {
       final r = InputImageRotationValue.fromRawValue(sensorOrientation);
       if (r == null) return null;
