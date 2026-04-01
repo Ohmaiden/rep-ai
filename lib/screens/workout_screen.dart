@@ -412,16 +412,69 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             const Text(
-              'We need camera access to detect your pose and count reps. '
+              'Rep AI needs camera access to detect your pose and count reps. '
               'Your video is processed on-device and never leaves your phone.',
               textAlign: TextAlign.center,
               style:
                   TextStyle(color: Colors.white54, fontSize: 15, height: 1.5),
             ),
+            const SizedBox(height: 8),
+            const Text(
+              'Go to: Settings → Privacy & Security → Camera → Rep AI',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+            ),
             const SizedBox(height: 28),
-            ElevatedButton(
-              onPressed: () => openAppSettings(),
-              child: const Text('Open Settings'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await openAppSettings();
+                  // Re-check permission when user returns
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  if (mounted) {
+                    final status = await Permission.camera.status;
+                    if (status.isGranted) {
+                      setState(() => _permissionDenied = false);
+                      _initializeCamera();
+                    }
+                  }
+                },
+                icon: const Icon(Icons.settings_rounded),
+                label: const Text('Open App Settings',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  // Try requesting again — in case status changed
+                  final status = await Permission.camera.request();
+                  if (status.isGranted && mounted) {
+                    setState(() => _permissionDenied = false);
+                    _initializeCamera();
+                  } else if (mounted) {
+                    await openAppSettings();
+                  }
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try Again'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: const BorderSide(color: Colors.white24),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextButton(
