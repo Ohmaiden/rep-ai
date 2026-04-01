@@ -194,19 +194,28 @@ class PushUpAnalyzer {
 
   void _updateUpsideDown(
       Map<String, Map<String, double>> landmarks, double deviceAngle) {
-    // Correct orientations (never warn):
-    //   0   = normal portrait  (camera at top)
-    //   270 = landscape, camera on RIGHT (counter-clockwise from portrait)
-    //
-    // Bad orientations (show flip overlay):
-    //   90  = landscape, camera on LEFT  → "Flip your phone 180°"
-    //   180 = portrait upside-down       → "Flip your phone"
-
     _lastDeviceAngle = deviceAngle;
 
-    final bool shouldBeFlipped = deviceAngle == 90 || deviceAngle == 180;
+    // Use landmark positions to detect upside-down rather than device angle.
+    // When upside-down, the nose appears BELOW the hips in the frame
+    // (nose Y > hip Y in normalised coords where 0=top, 1=bottom).
+    final nose = landmarks['NOSE'];
+    final lH   = landmarks['LEFT_HIP'];
+    final rH   = landmarks['RIGHT_HIP'];
 
-    if (shouldBeFlipped) {
+    if (nose == null || lH == null || rH == null) {
+      // No pose — gradually clear the counter
+      if (_upsideDownFrames > 0) _upsideDownFrames--;
+      return;
+    }
+
+    final noseY = nose['y'] ?? 0.0;
+    final hipY  = ((lH['y'] ?? 0.0) + (rH['y'] ?? 0.0)) / 2;
+
+    // Nose should be ABOVE hips (lower Y value). If nose Y > hip Y, flipped.
+    final bool isFlipped = noseY > hipY + 0.05; // 5% tolerance
+
+    if (isFlipped) {
       if (_upsideDownFrames < _upsideDownDebounce) _upsideDownFrames++;
     } else {
       if (_upsideDownFrames > 0) _upsideDownFrames--;
