@@ -153,24 +153,24 @@ class PoseDetectionService {
         double nx = lm.x / imageWidth;
         double ny = lm.y / imageHeight;
 
-        // Rotate coordinates to compensate for camera image orientation.
+        // On Android, rotate coordinates to compensate for camera image orientation.
         // ML Kit gives coords in raw camera image space. In landscape the
         // image is rotated 90° so X/Y are swapped relative to the world.
-        if (deviceAngle == 270) {
-          // Landscape, camera on right (counter-clockwise from portrait):
-          // raw image X axis → world Y, raw image Y axis → world X (inverted)
-          final rotX = ny;
-          final rotY = 1.0 - nx;
-          nx = rotX;
-          ny = rotY;
-        } else if (deviceAngle == 90) {
-          // Landscape, camera on left (clockwise from portrait):
-          final rotX = 1.0 - ny;
-          final rotY = nx;
-          nx = rotX;
-          ny = rotY;
+        // On iOS, the flutter camera plugin already delivers frames in device
+        // orientation, so no coordinate transform is needed.
+        if (!Platform.isIOS) {
+          if (deviceAngle == 270) {
+            final rotX = ny;
+            final rotY = 1.0 - nx;
+            nx = rotX;
+            ny = rotY;
+          } else if (deviceAngle == 90) {
+            final rotX = 1.0 - ny;
+            final rotY = nx;
+            nx = rotX;
+            ny = rotY;
+          }
         }
-        // deviceAngle == 0 (portrait) or 180: no X/Y swap needed
 
         landmarks[entry.value] = {
           'x': nx,
@@ -209,28 +209,13 @@ class PoseDetectionService {
     if (format == null) return null;
 
     // Determine rotation.
-    // On iOS, ML Kit needs the rotation that accounts for both the sensor
-    // orientation and the camera direction. The front camera on iOS is
-    // mirrored, so the effective rotation differs from the back camera.
+    // On iOS, the flutter camera plugin delivers bgra8888 frames that are
+    // already in the natural device orientation — ML Kit should receive
+    // rotation0deg so it doesn't double-rotate the image.
+    // On Android, pass the raw sensorOrientation value.
     InputImageRotation rotation;
     if (Platform.isIOS) {
-      if (camera.lensDirection == CameraLensDirection.front) {
-        // Front camera on iOS: sensor is 90°, front is mirrored
-        // Portrait: use 270 (equivalent to -90 / mirror of 90)
-        // Landscape left (deviceAngle 90): use 0
-        // Landscape right (deviceAngle 270): use 180
-        if (sensorOrientation == 90) {
-          rotation = InputImageRotation.rotation270deg;
-        } else if (sensorOrientation == 270) {
-          rotation = InputImageRotation.rotation90deg;
-        } else {
-          rotation = InputImageRotation.rotation0deg;
-        }
-      } else {
-        // Back camera on iOS
-        final r = InputImageRotationValue.fromRawValue(sensorOrientation);
-        rotation = r ?? InputImageRotation.rotation90deg;
-      }
+      rotation = InputImageRotation.rotation0deg;
     } else {
       final r = InputImageRotationValue.fromRawValue(sensorOrientation);
       if (r == null) return null;
