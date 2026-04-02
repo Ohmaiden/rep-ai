@@ -82,6 +82,7 @@ class PoseDetectionService {
         image.width,
         image.height,
         deviceAngle: deviceAngle,
+        sensorOrientation: sensorOrientation,
       );
 
       _isBusy = false;
@@ -124,6 +125,7 @@ class PoseDetectionService {
     int imageWidth,
     int imageHeight, {
     double deviceAngle = 0,
+    int sensorOrientation = 0,
   }) {
     final landmarks = <String, Map<String, double>>{};
 
@@ -153,12 +155,41 @@ class PoseDetectionService {
         double nx = lm.x / imageWidth;
         double ny = lm.y / imageHeight;
 
-        // On Android, rotate coordinates to compensate for camera image orientation.
-        // ML Kit gives coords in raw camera image space. In landscape the
-        // image is rotated 90° so X/Y are swapped relative to the world.
-        // On iOS, the flutter camera plugin already delivers frames in device
-        // orientation, so no coordinate transform is needed.
-        if (!Platform.isIOS) {
+        // Rotate coordinates to compensate for camera image orientation.
+        // ML Kit returns coordinates in the raw image space, so we need to
+        // transform them into upright world/portrait space.
+        //
+        // On iOS: the sensor always delivers landscape frames (sensorOrientation=90)
+        // regardless of device orientation. We compute the effectiveRotation:
+        //   effectiveRotation = (sensorOrientation - deviceAngle + 360) % 360
+        //
+        // On Android: sensorOrientation is already baked into the coordinate
+        // space by the camera pipeline, so we only need to handle deviceAngle.
+        if (Platform.isIOS) {
+          final effectiveRotation =
+              (sensorOrientation - deviceAngle.toInt() + 360) % 360;
+          if (effectiveRotation == 90) {
+            // Image is 90° clockwise from upright
+            // x_world = 1 - y_img, y_world = x_img
+            final rotX = 1.0 - ny;
+            final rotY = nx;
+            nx = rotX;
+            ny = rotY;
+          } else if (effectiveRotation == 270) {
+            // Image is 90° counter-clockwise from upright
+            // x_world = y_img, y_world = 1 - x_img
+            final rotX = ny;
+            final rotY = 1.0 - nx;
+            nx = rotX;
+            ny = rotY;
+          } else if (effectiveRotation == 180) {
+            // Image is upside down
+            nx = 1.0 - nx;
+            ny = 1.0 - ny;
+          }
+          // effectiveRotation == 0: no transform needed
+        } else {
+          // Android: transform based on device orientation
           if (deviceAngle == 270) {
             final rotX = ny;
             final rotY = 1.0 - nx;
@@ -208,19 +239,12 @@ class PoseDetectionService {
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
     if (format == null) return null;
 
-    // Determine rotation.
-    // On iOS, the flutter camera plugin delivers bgra8888 frames that are
-    // already in the natural device orientation — ML Kit should receive
-    // rotation0deg so it doesn't double-rotate the image.
-    // On Android, pass the raw sensorOrientation value.
-    InputImageRotation rotation;
-    if (Platform.isIOS) {
-      rotation = InputImageRotation.rotation0deg;
-    } else {
-      final r = InputImageRotationValue.fromRawValue(sensorOrientation);
-      if (r == null) return null;
-      rotation = r;
-    }
+    // Pass sensorOrientation to ML Kit on all platforms so it can correctly
+    // process the image. On iOS, the sensor delivers landscape frames
+    // (sensorOrientation=90) even in portrait — ML Kit needs to know this
+    // to detect the pose correctly.
+    final rotation = InputImageRotationValue.fromRawValue(sensorOrientation)
+        ?? InputImageRotation.rotation0deg;
 
     // On iOS with bgra8888, all data is in a single plane.
     // On Android with NV21/YUV420, we may need to concatenate planes.
