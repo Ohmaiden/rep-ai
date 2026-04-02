@@ -164,19 +164,24 @@ class WorkoutState extends ChangeNotifier {
       _currentForm = _ml.classify(landmarks);
     }
 
-    // If ML model returns null or not_exercise but we have a valid pose,
-    // synthesise a FormPrediction based on pose quality so the badge always
-    // shows when the body is detected. This is the fallback for iOS where
-    // the model may not generalise well to bgra8888 landmark coordinates.
+    // If ML model returns null or not_exercise but we have a valid full-body
+    // pose, synthesise a FormPrediction so the badge shows on iOS where the
+    // model may not generalise to bgra8888 landmark coordinates.
+    // Requires shoulders + hips + at least one knee/ankle to be visible —
+    // prevents face-only or upper-body-only frames from triggering.
     if (_currentForm == null || _currentForm!.isNotExercise) {
-      final hasValidPose = landmarks.containsKey('LEFT_SHOULDER') &&
-          landmarks.containsKey('RIGHT_SHOULDER') &&
-          landmarks.containsKey('LEFT_HIP') &&
-          (landmarks['LEFT_SHOULDER']?['visibility'] ?? 0.0) > 0.1 &&
-          (landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0) > 0.1;
-      if (hasValidPose) {
-        // Show as good_form when pose is detected — lets rep counting work
-        // and shows the badge. The model will override this when it's confident.
+      final lSvis  = landmarks['LEFT_SHOULDER']?['visibility']  ?? 0.0;
+      final rSvis  = landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0;
+      final lHvis  = landmarks['LEFT_HIP']?['visibility']       ?? 0.0;
+      final rHvis  = landmarks['RIGHT_HIP']?['visibility']      ?? 0.0;
+      final lKvis  = landmarks['LEFT_KNEE']?['visibility']      ?? 0.0;
+      final rKvis  = landmarks['RIGHT_KNEE']?['visibility']     ?? 0.0;
+      final lAvis  = landmarks['LEFT_ANKLE']?['visibility']     ?? 0.0;
+      final rAvis  = landmarks['RIGHT_ANKLE']?['visibility']    ?? 0.0;
+      final hasLegs = lKvis > 0.15 || rKvis > 0.15 || lAvis > 0.15 || rAvis > 0.15;
+      final hasFullBody = lSvis > 0.2 && rSvis > 0.2 &&
+                          lHvis > 0.2 && rHvis > 0.2 && hasLegs;
+      if (hasFullBody) {
         _currentForm = const FormPrediction('good_form', 0.6, [0.1, 0.6, 0.3]);
       }
     }
