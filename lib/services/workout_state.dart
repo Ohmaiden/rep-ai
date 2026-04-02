@@ -4,7 +4,6 @@
 /// Supports both free mode and custom sets mode.
 library;
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/workout_models.dart';
 import 'pushup_analyzer.dart';
@@ -20,7 +19,6 @@ class WorkoutState extends ChangeNotifier {
   DateTime? _sessionStart;
   String _exercise = 'Push-ups';
   FormPrediction? _currentForm;
-  bool _usingFallback = false;
   double _deviceAngle = 0;
 
   // Custom workout plan
@@ -54,9 +52,7 @@ class WorkoutState extends ChangeNotifier {
   int get goodFormReps      => _analyzer.goodFormReps;
   int get badFormReps       => _analyzer.badFormReps;
   List<RepResult> get repHistory => _analyzer.repHistory;
-  // Only expose the form prediction to the badge if ML was actually confident.
-  // The fallback prediction is used internally for rep counting only.
-  FormPrediction? get currentForm => _usingFallback ? null : _currentForm;
+  FormPrediction? get currentForm => _currentForm;
 
   // Custom workout getters
   bool get isCustom       => _isCustom;
@@ -168,43 +164,11 @@ class WorkoutState extends ChangeNotifier {
       _currentForm = _ml.classify(landmarks);
     }
 
-    // iOS only: if ML model returns null or not_exercise but we have a valid
-    // full-body pose, synthesise a prediction for rep counting only.
-    // On Android the ML model works correctly so we never need this fallback.
-    final mlWasConfident = _currentForm != null && !_currentForm!.isNotExercise;
-    if (!mlWasConfident && Platform.isIOS) {
-      final lSvis  = landmarks['LEFT_SHOULDER']?['visibility']  ?? 0.0;
-      final rSvis  = landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0;
-      final lHvis  = landmarks['LEFT_HIP']?['visibility']       ?? 0.0;
-      final rHvis  = landmarks['RIGHT_HIP']?['visibility']      ?? 0.0;
-      final lKvis  = landmarks['LEFT_KNEE']?['visibility']      ?? 0.0;
-      final rKvis  = landmarks['RIGHT_KNEE']?['visibility']     ?? 0.0;
-      final lAvis  = landmarks['LEFT_ANKLE']?['visibility']     ?? 0.0;
-      final rAvis  = landmarks['RIGHT_ANKLE']?['visibility']    ?? 0.0;
-      final hasLegs = lKvis > 0.15 || rKvis > 0.15 || lAvis > 0.15 || rAvis > 0.15;
-      final hasFullBody = lSvis > 0.2 && rSvis > 0.2 &&
-                          lHvis > 0.2 && rHvis > 0.2 && hasLegs;
-      if (hasFullBody) {
-        _currentForm = const FormPrediction('good_form', 0.6, [0.1, 0.6, 0.3]);
-        _usingFallback = true;
-      } else {
-        _usingFallback = false;
-      }
-    } else {
-      // Not iOS, or ML was confident — never use fallback
-      _usingFallback = false;
-    }
-
     final prevGoodReps = _analyzer.goodFormReps;
     final prevAttempts = _analyzer.attemptCount;
 
-    // When using the pose fallback (ML didn't fire), pass null to the analyzer
-    // so it doesn't count reps. Rep counting only happens when the ML model
-    // is actually confident about form. This prevents false reps on iOS when
-    // the model isn't generalising to bgra8888 coordinates.
-    final labelForAnalyzer = _usingFallback ? null : _currentForm?.label;
     _analyzer.update(landmarks,
-        mlFormLabel: labelForAnalyzer, deviceAngle: _deviceAngle);
+        mlFormLabel: _currentForm?.label, deviceAngle: _deviceAngle);
 
     // Fire audio synchronously with the counter increment — before notifyListeners().
     if (_audio != null) {
