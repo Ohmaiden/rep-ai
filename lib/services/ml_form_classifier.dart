@@ -9,6 +9,7 @@
 ///   2 = not_exercise
 library;
 
+import 'dart:io';
 import 'dart:math';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
@@ -91,13 +92,14 @@ class MLFormClassifier {
     }
 
     // Reject frames where shoulders or hips aren't clearly visible.
-    // Use a very low threshold — the model itself handles confidence;
-    // overly strict filtering here causes the badge to never show on iOS.
+    // iOS bgra8888 produces lower confidence scores so uses a lower threshold.
+    // Android NV21 keeps the original stricter threshold.
+    final visThreshold = Platform.isIOS ? 0.1 : 0.3;
     final shoulderVis = ((landmarks['LEFT_SHOULDER']?['visibility'] ?? 0.0) +
                          (landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0)) / 2;
     final hipVis      = ((landmarks['LEFT_HIP']?['visibility'] ?? 0.0) +
                          (landmarks['RIGHT_HIP']?['visibility'] ?? 0.0)) / 2;
-    if (shoulderVis < 0.1 || hipVis < 0.1) return null;
+    if (shoulderVis < visThreshold || hipVis < visThreshold) return null;
 
     // Normalise: centre on mid-hip, scale by shoulder→hip torso length
     final midHipX      = (coords[_iLeftHip][0]  + coords[_iRightHip][0])  / 2;

@@ -4,6 +4,7 @@
 /// Supports both free mode and custom sets mode.
 library;
 
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/workout_models.dart';
 import 'pushup_analyzer.dart';
@@ -167,12 +168,11 @@ class WorkoutState extends ChangeNotifier {
       _currentForm = _ml.classify(landmarks);
     }
 
-    // If ML model returns null or not_exercise but we have a valid full-body
-    // pose, synthesise a prediction for rep counting only (not badge display).
-    // Requires shoulders + hips + at least one knee/ankle — prevents
-    // face-only or upper-body-only frames from triggering.
+    // iOS only: if ML model returns null or not_exercise but we have a valid
+    // full-body pose, synthesise a prediction for rep counting only.
+    // On Android the ML model works correctly so we never need this fallback.
     final mlWasConfident = _currentForm != null && !_currentForm!.isNotExercise;
-    if (!mlWasConfident) {
+    if (!mlWasConfident && Platform.isIOS) {
       final lSvis  = landmarks['LEFT_SHOULDER']?['visibility']  ?? 0.0;
       final rSvis  = landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0;
       final lHvis  = landmarks['LEFT_HIP']?['visibility']       ?? 0.0;
@@ -191,6 +191,7 @@ class WorkoutState extends ChangeNotifier {
         _usingFallback = false;
       }
     } else {
+      // Not iOS, or ML was confident — never use fallback
       _usingFallback = false;
     }
 
