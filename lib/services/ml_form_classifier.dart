@@ -90,12 +90,14 @@ class MLFormClassifier {
       coords.add([lm['x']!, lm['y']!]);
     }
 
-    // Reject frames where shoulders or hips aren't clearly visible
+    // Reject frames where shoulders or hips aren't clearly visible.
+    // Use a very low threshold — the model itself handles confidence;
+    // overly strict filtering here causes the badge to never show on iOS.
     final shoulderVis = ((landmarks['LEFT_SHOULDER']?['visibility'] ?? 0.0) +
                          (landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0)) / 2;
     final hipVis      = ((landmarks['LEFT_HIP']?['visibility'] ?? 0.0) +
                          (landmarks['RIGHT_HIP']?['visibility'] ?? 0.0)) / 2;
-    if (shoulderVis < 0.3 || hipVis < 0.3) return null;
+    if (shoulderVis < 0.1 || hipVis < 0.1) return null;
 
     // Normalise: centre on mid-hip, scale by shoulder→hip torso length
     final midHipX      = (coords[_iLeftHip][0]  + coords[_iRightHip][0])  / 2;
