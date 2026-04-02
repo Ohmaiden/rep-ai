@@ -169,21 +169,21 @@ class PoseDetectionService {
           final effectiveRotation =
               (sensorOrientation - deviceAngle.toInt() + 360) % 360;
           if (effectiveRotation == 90) {
-            // Image is 90° clockwise from upright
-            // x_world = 1 - y_img, y_world = x_img
-            final rotX = 1.0 - ny;
-            final rotY = nx;
-            nx = rotX;
-            ny = rotY;
-          } else if (effectiveRotation == 270) {
-            // Image is 90° counter-clockwise from upright
+            // Sensor is 90° CW from portrait — correct with 90° CCW:
             // x_world = y_img, y_world = 1 - x_img
             final rotX = ny;
             final rotY = 1.0 - nx;
             nx = rotX;
             ny = rotY;
+          } else if (effectiveRotation == 270) {
+            // Sensor is 270° CW (90° CCW) from portrait — correct with 90° CW:
+            // x_world = 1 - y_img, y_world = x_img
+            final rotX = 1.0 - ny;
+            final rotY = nx;
+            nx = rotX;
+            ny = rotY;
           } else if (effectiveRotation == 180) {
-            // Image is upside down
+            // Upside down
             nx = 1.0 - nx;
             ny = 1.0 - ny;
           }
