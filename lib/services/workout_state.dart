@@ -19,6 +19,7 @@ class WorkoutState extends ChangeNotifier {
   DateTime? _sessionStart;
   String _exercise = 'Push-ups';
   FormPrediction? _currentForm;
+  bool _usingFallback = false;
   double _deviceAngle = 0;
 
   // Custom workout plan
@@ -52,7 +53,9 @@ class WorkoutState extends ChangeNotifier {
   int get goodFormReps      => _analyzer.goodFormReps;
   int get badFormReps       => _analyzer.badFormReps;
   List<RepResult> get repHistory => _analyzer.repHistory;
-  FormPrediction? get currentForm => _currentForm;
+  // Only expose the form prediction to the badge if ML was actually confident.
+  // The fallback prediction is used internally for rep counting only.
+  FormPrediction? get currentForm => _usingFallback ? null : _currentForm;
 
   // Custom workout getters
   bool get isCustom       => _isCustom;
@@ -165,11 +168,11 @@ class WorkoutState extends ChangeNotifier {
     }
 
     // If ML model returns null or not_exercise but we have a valid full-body
-    // pose, synthesise a FormPrediction so the badge shows on iOS where the
-    // model may not generalise to bgra8888 landmark coordinates.
-    // Requires shoulders + hips + at least one knee/ankle to be visible —
-    // prevents face-only or upper-body-only frames from triggering.
-    if (_currentForm == null || _currentForm!.isNotExercise) {
+    // pose, synthesise a prediction for rep counting only (not badge display).
+    // Requires shoulders + hips + at least one knee/ankle — prevents
+    // face-only or upper-body-only frames from triggering.
+    final mlWasConfident = _currentForm != null && !_currentForm!.isNotExercise;
+    if (!mlWasConfident) {
       final lSvis  = landmarks['LEFT_SHOULDER']?['visibility']  ?? 0.0;
       final rSvis  = landmarks['RIGHT_SHOULDER']?['visibility'] ?? 0.0;
       final lHvis  = landmarks['LEFT_HIP']?['visibility']       ?? 0.0;
@@ -183,7 +186,12 @@ class WorkoutState extends ChangeNotifier {
                           lHvis > 0.2 && rHvis > 0.2 && hasLegs;
       if (hasFullBody) {
         _currentForm = const FormPrediction('good_form', 0.6, [0.1, 0.6, 0.3]);
+        _usingFallback = true;
+      } else {
+        _usingFallback = false;
       }
+    } else {
+      _usingFallback = false;
     }
 
     final prevGoodReps = _analyzer.goodFormReps;
