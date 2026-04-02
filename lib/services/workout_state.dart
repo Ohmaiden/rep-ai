@@ -197,8 +197,13 @@ class WorkoutState extends ChangeNotifier {
     final prevGoodReps = _analyzer.goodFormReps;
     final prevAttempts = _analyzer.attemptCount;
 
+    // When using the pose fallback (ML didn't fire), pass null to the analyzer
+    // so it doesn't count reps. Rep counting only happens when the ML model
+    // is actually confident about form. This prevents false reps on iOS when
+    // the model isn't generalising to bgra8888 coordinates.
+    final labelForAnalyzer = _usingFallback ? null : _currentForm?.label;
     _analyzer.update(landmarks,
-        mlFormLabel: _currentForm?.label, deviceAngle: _deviceAngle);
+        mlFormLabel: labelForAnalyzer, deviceAngle: _deviceAngle);
 
     // Fire audio synchronously with the counter increment — before notifyListeners().
     if (_audio != null) {
