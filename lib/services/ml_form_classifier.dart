@@ -130,67 +130,70 @@ class MLFormClassifier {
     _interpreter = null;
   }
 
-  /// Geometric form classifier for iOS — uses landmark angles instead of the
-  /// TFLite model (which was trained on Android data and doesn't generalise).
-  /// Returns null if not enough landmarks are visible to make a judgement.
+  /// Geometric form classifier for iOS — uses landmark positions instead of
+  /// the TFLite model (which was trained on Android data and doesn't generalise).
+  ///
+  /// Camera is placed to the side of the user in landscape/portrait mode.
+  /// The phone sees the user from the side, so we track shoulder height
+  /// relative to hip to determine if they are in a push-up position.
   FormPrediction? _geometricClassify(Map<String, Map<String, double>> landmarks) {
     final lS = landmarks['LEFT_SHOULDER'];
     final rS = landmarks['RIGHT_SHOULDER'];
+    final lH = landmarks['LEFT_HIP'];
+    final rH = landmarks['RIGHT_HIP'];
     final lE = landmarks['LEFT_ELBOW'];
     final rE = landmarks['RIGHT_ELBOW'];
     final lW = landmarks['LEFT_WRIST'];
     final rW = landmarks['RIGHT_WRIST'];
-    final lH = landmarks['LEFT_HIP'];
-    final rH = landmarks['RIGHT_HIP'];
+    final nose = landmarks['NOSE'];
 
-    // Need at minimum: both shoulders, one elbow+wrist pair, both hips
-    final shoulderVis = ((lS?['visibility'] ?? 0.0) + (rS?['visibility'] ?? 0.0)) / 2;
-    final hipVis      = ((lH?['visibility'] ?? 0.0) + (rH?['visibility'] ?? 0.0)) / 2;
+    // Need at minimum: both shoulders OR both hips visible
+    final lSvis = lS?['visibility'] ?? 0.0;
+    final rSvis = rS?['visibility'] ?? 0.0;
+    final lHvis = lH?['visibility'] ?? 0.0;
+    final rHvis = rH?['visibility'] ?? 0.0;
+    final shoulderVis = (lSvis + rSvis) / 2;
+    final hipVis = (lHvis + rHvis) / 2;
+
+    // Must have at least shoulders visible
+    if (shoulderVis < 0.15) return null;
+
+    // ── Standing vs push-up detection ────────────────────────────────────────
+    // When standing: nose is high in frame (low Y), hips are below (high Y),
+    // and the vertical distance between nose and hips is large.
+    // When in push-up: body is mostly horizontal, so nose Y ≈ hip Y.
+    if (nose != null && hipVis > 0.15 && lH != null && rH != null) {
+      final noseY = nose['y']!;
+      final hipY = ((lH['y']! + rH['y']!) / 2);
+      final verticalSpan = (hipY - noseY).abs();
+
+      // If nose is well above hips and large vertical span — standing up
+      if (noseY < hipY && verticalSpan > 0.35) {
+        return const FormPrediction('not_exercise', 0.75, [0.1, 0.1, 0.8]);
+      }
+    }
+
+    // ── Elbow angle check ─────────────────────────────────────────────────────
     final leftArmVis  = min(lE?['visibility'] ?? 0.0, lW?['visibility'] ?? 0.0);
     final rightArmVis = min(rE?['visibility'] ?? 0.0, rW?['visibility'] ?? 0.0);
-    final hasArm      = leftArmVis > 0.15 || rightArmVis > 0.15;
 
-    if (shoulderVis < 0.2 || hipVis < 0.2 || !hasArm) return null;
-
-    // Calculate elbow angle (shoulder → elbow → wrist)
-    // In a push-up: arm should be somewhat bent (not fully extended)
     double? elbowAngle;
-    if (leftArmVis > rightArmVis && lS != null && lE != null && lW != null) {
+    if (leftArmVis > 0.15 && lS != null && lE != null && lW != null) {
       elbowAngle = _angle(lS, lE, lW);
-    } else if (rS != null && rE != null && rW != null) {
+    } else if (rightArmVis > 0.15 && rS != null && rE != null && rW != null) {
       elbowAngle = _angle(rS, rE, rW);
     }
 
-    // Calculate body alignment (shoulder midpoint to hip midpoint should be roughly horizontal)
-    double? bodyAngle;
-    if (lS != null && rS != null && lH != null && rH != null) {
-      final midShoulderX = (lS['x']! + rS['x']!) / 2;
-      final midShoulderY = (lS['y']! + rS['y']!) / 2;
-      final midHipX = (lH['x']! + rH['x']!) / 2;
-      final midHipY = (lH['y']! + rH['y']!) / 2;
-      final dx = midHipX - midShoulderX;
-      final dy = midHipY - midShoulderY;
-      bodyAngle = (atan2(dy.abs(), dx.abs()) * 180 / pi);
-    }
-
-    // Determine form:
-    // Good form: body roughly horizontal (push-up position) + elbow somewhat bent
-    // Not exercise: body vertical (standing)
-    if (bodyAngle != null && bodyAngle < 30) {
-      // Body too vertical — standing up, not in push-up position
-      return const FormPrediction('not_exercise', 0.7, [0.1, 0.1, 0.8]);
-    }
-
     if (elbowAngle != null) {
-      // Elbow angle: < 90° = too bent (going down), 90-160° = good form range, > 160° = arms too straight
-      if (elbowAngle > 50 && elbowAngle < 170) {
+      // Good form: arms at any angle typical for push-up (30° to 170°)
+      if (elbowAngle > 30 && elbowAngle < 175) {
         return FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
       } else {
         return FormPrediction('bad_form', 0.6, [0.6, 0.2, 0.2]);
       }
     }
 
-    // Visible pose but can't determine form clearly
+    // Shoulders visible but no clear arm data — assume in exercise position
     return const FormPrediction('good_form', 0.5, [0.2, 0.5, 0.3]);
   }
 

@@ -165,31 +165,9 @@ class PoseDetectionService {
         //
         // On Android: sensorOrientation is already baked into the coordinate
         // space by the camera pipeline, so we only need to handle deviceAngle.
-        if (Platform.isIOS) {
-          final effectiveRotation =
-              (sensorOrientation - deviceAngle.toInt() + 360) % 360;
-          if (effectiveRotation == 90) {
-            // Sensor is 90° CW from portrait — correct with 90° CCW:
-            // x_world = y_img, y_world = 1 - x_img
-            final rotX = ny;
-            final rotY = 1.0 - nx;
-            nx = rotX;
-            ny = rotY;
-          } else if (effectiveRotation == 270) {
-            // Sensor is 270° CW (90° CCW) from portrait — correct with 90° CW:
-            // x_world = 1 - y_img, y_world = x_img
-            final rotX = 1.0 - ny;
-            final rotY = nx;
-            nx = rotX;
-            ny = rotY;
-          } else if (effectiveRotation == 180) {
-            // Upside down
-            nx = 1.0 - nx;
-            ny = 1.0 - ny;
-          }
-          // effectiveRotation == 0: no transform needed
-        } else {
-          // Android: transform based on device orientation
+        if (!Platform.isIOS) {
+          // Android only: transform based on device orientation.
+          // On iOS, ML Kit handles orientation internally so no transform needed.
           if (deviceAngle == 270) {
             final rotX = ny;
             final rotY = 1.0 - nx;
