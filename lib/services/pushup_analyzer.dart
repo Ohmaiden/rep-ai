@@ -25,6 +25,7 @@
 /// (nose Y > hip Y). A 10-frame debounce avoids false positives mid-rep.
 library;
 
+import 'dart:io';
 import '../models/workout_models.dart';
 import '../utils/geometry.dart';
 
@@ -196,15 +197,19 @@ class PushUpAnalyzer {
       Map<String, Map<String, double>> landmarks, double deviceAngle) {
     _lastDeviceAngle = deviceAngle;
 
-    // Use landmark positions to detect upside-down rather than device angle.
-    // When upside-down, the nose appears BELOW the hips in the frame
-    // (nose Y > hip Y in normalised coords where 0=top, 1=bottom).
+    // iOS: landmark orientation depends on ML Kit's internal handling which
+    // differs from Android. Disable upside-down detection on iOS to prevent
+    // false flip warnings.
+    if (Platform.isIOS) {
+      if (_upsideDownFrames > 0) _upsideDownFrames--;
+      return;
+    }
+
     final nose = landmarks['NOSE'];
     final lH   = landmarks['LEFT_HIP'];
     final rH   = landmarks['RIGHT_HIP'];
 
     if (nose == null || lH == null || rH == null) {
-      // No pose — gradually clear the counter
       if (_upsideDownFrames > 0) _upsideDownFrames--;
       return;
     }
@@ -212,8 +217,7 @@ class PushUpAnalyzer {
     final noseY = nose['y'] ?? 0.0;
     final hipY  = ((lH['y'] ?? 0.0) + (rH['y'] ?? 0.0)) / 2;
 
-    // Nose should be ABOVE hips (lower Y value). If nose Y > hip Y, flipped.
-    final bool isFlipped = noseY > hipY + 0.05; // 5% tolerance
+    final bool isFlipped = noseY > hipY + 0.05;
 
     if (isFlipped) {
       if (_upsideDownFrames < _upsideDownDebounce) _upsideDownFrames++;

@@ -193,8 +193,9 @@ class MLFormClassifier {
       }
     }
 
-    // Shoulders visible but no clear arm data — assume in exercise position
-    return const FormPrediction('good_form', 0.5, [0.2, 0.5, 0.3]);
+    // Shoulders visible but no arm data — can't determine form, return null
+    // so the analyzer stays idle rather than counting phantom reps
+    return null;
   }
 
   /// Calculate angle at point B given three landmarks A, B, C (in degrees).
