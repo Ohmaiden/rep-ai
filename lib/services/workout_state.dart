@@ -157,11 +157,23 @@ class WorkoutState extends ChangeNotifier {
 
   // ── Common ────────────────────────────────────────────────────────────
 
+  // Debug: expose last landmark data for overlay
+  Map<String, Map<String, double>> _lastLandmarks = {};
+  String _lastFormDebug = '';
+  Map<String, Map<String, double>> get lastLandmarks => _lastLandmarks;
+  String get lastFormDebug => _lastFormDebug;
+
   void processLandmarks(Map<String, Map<String, double>> landmarks) {
     if (!_isActive) return;
+    _lastLandmarks = landmarks;
 
     if (_ml.isReady) {
       _currentForm = _ml.classify(landmarks);
+      final lEvis = landmarks['LEFT_ELBOW']?['visibility'] ?? 0.0;
+      final rEvis = landmarks['RIGHT_ELBOW']?['visibility'] ?? 0.0;
+      final noseY = landmarks['NOSE']?['y'] ?? -1.0;
+      final hipY = ((landmarks['LEFT_HIP']?['y'] ?? 0.0) + (landmarks['RIGHT_HIP']?['y'] ?? 0.0)) / 2;
+      _lastFormDebug = 'form:${_currentForm?.label ?? 'null'} lE:${lEvis.toStringAsFixed(2)} rE:${rEvis.toStringAsFixed(2)} nY:${noseY.toStringAsFixed(2)} hY:${hipY.toStringAsFixed(2)}';
     }
 
     final prevGoodReps = _analyzer.goodFormReps;
