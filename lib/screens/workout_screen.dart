@@ -1036,8 +1036,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     ),
                   ),
 
-                // iOS debug overlay — shows landmark visibility scores
-                if (Platform.isIOS && state.lastFormDebug.isNotEmpty)
+                // iOS debug overlay — always show to diagnose
+                if (Platform.isIOS)
                   Positioned(
                     bottom: 80,
                     left: 8,

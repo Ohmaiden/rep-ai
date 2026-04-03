@@ -167,14 +167,16 @@ class WorkoutState extends ChangeNotifier {
     if (!_isActive) return;
     _lastLandmarks = landmarks;
 
+    final lEvis = landmarks['LEFT_ELBOW']?['visibility'] ?? 0.0;
+    final rEvis = landmarks['RIGHT_ELBOW']?['visibility'] ?? 0.0;
+    final noseY = landmarks['NOSE']?['y'] ?? -1.0;
+    final hipY = ((landmarks['LEFT_HIP']?['y'] ?? 0.0) + (landmarks['RIGHT_HIP']?['y'] ?? 0.0)) / 2;
+
     if (_ml.isReady) {
       _currentForm = _ml.classify(landmarks);
-      final lEvis = landmarks['LEFT_ELBOW']?['visibility'] ?? 0.0;
-      final rEvis = landmarks['RIGHT_ELBOW']?['visibility'] ?? 0.0;
-      final noseY = landmarks['NOSE']?['y'] ?? -1.0;
-      final hipY = ((landmarks['LEFT_HIP']?['y'] ?? 0.0) + (landmarks['RIGHT_HIP']?['y'] ?? 0.0)) / 2;
-      _lastFormDebug = 'form:${_currentForm?.label ?? 'null'} lE:${lEvis.toStringAsFixed(2)} rE:${rEvis.toStringAsFixed(2)} nY:${noseY.toStringAsFixed(2)} hY:${hipY.toStringAsFixed(2)}';
     }
+    _lastFormDebug = 'mlReady:${_ml.isReady} form:${_currentForm?.label ?? 'null'} lE:${lEvis.toStringAsFixed(2)} rE:${rEvis.toStringAsFixed(2)} nY:${noseY.toStringAsFixed(2)} hY:${hipY.toStringAsFixed(2)}';
+    notifyListeners(); // force debug update
 
     final prevGoodReps = _analyzer.goodFormReps;
     final prevAttempts = _analyzer.attemptCount;
