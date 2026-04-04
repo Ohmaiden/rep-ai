@@ -4,6 +4,7 @@
 /// Supports both free mode and custom sets mode.
 library;
 
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/workout_models.dart';
 import 'pushup_analyzer.dart';
@@ -172,11 +173,15 @@ class WorkoutState extends ChangeNotifier {
     final noseY = landmarks['NOSE']?['y'] ?? -1.0;
     final hipY = ((landmarks['LEFT_HIP']?['y'] ?? 0.0) + (landmarks['RIGHT_HIP']?['y'] ?? 0.0)) / 2;
 
-    if (_ml.isReady) {
+    // On iOS the TFLite model never loads (mlReady is always false).
+    // Use the geometric classifier directly instead.
+    if (Platform.isIOS) {
+      _currentForm = _ml.classifyGeometric(landmarks);
+    } else if (_ml.isReady) {
       _currentForm = _ml.classify(landmarks);
     }
     _lastFormDebug = 'mlReady:${_ml.isReady} form:${_currentForm?.label ?? 'null'} lE:${lEvis.toStringAsFixed(2)} rE:${rEvis.toStringAsFixed(2)} nY:${noseY.toStringAsFixed(2)} hY:${hipY.toStringAsFixed(2)}';
-    notifyListeners(); // force debug update
+    notifyListeners();
 
     final prevGoodReps = _analyzer.goodFormReps;
     final prevAttempts = _analyzer.attemptCount;

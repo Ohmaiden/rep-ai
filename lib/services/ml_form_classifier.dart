@@ -130,6 +130,10 @@ class MLFormClassifier {
     _interpreter = null;
   }
 
+  /// Public wrapper so workout_state can call geometric classify directly on iOS.
+  FormPrediction? classifyGeometric(Map<String, Map<String, double>> landmarks) =>
+      _geometricClassify(landmarks);
+
   /// Geometric form classifier for iOS — uses landmark positions instead of
   /// the TFLite model (which was trained on Android data and doesn't generalise).
   ///
