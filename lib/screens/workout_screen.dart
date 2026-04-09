@@ -1042,30 +1042,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     ),
                   ),
 
-                // iOS debug overlay — always show to diagnose
-                if (Platform.isIOS)
-                  Positioned(
-                    bottom: 80,
-                    left: 8,
-                    right: 8,
-                    child: IgnorePointer(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          state.lastFormDebug,
-                          style: const TextStyle(
-                            color: Colors.yellow,
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             );
           },

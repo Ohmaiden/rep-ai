@@ -63,7 +63,11 @@ class PushUpAnalyzer {
   double get _downThreshold => (_torsoLength ?? 0.15) * 0.15; // 15% of torso
   double get _upThreshold   => (_torsoLength ?? 0.15) * 0.10; // 10% of torso
 
-  static double get _minVis => Platform.isIOS ? 0.25 : 0.4;
+  static double get _minVis => Platform.isIOS ? 0.35 : 0.4;
+
+  // Consecutive frames with no form classification (null) — go idle if too many
+  int _nullFormFrames = 0;
+  static const int _maxNullFormFrames = 12;
 
   // ── Upside-down detection ────────────────────────────────────────────────────
   int _upsideDownFrames = 0;
@@ -144,6 +148,13 @@ class PushUpAnalyzer {
 
     final isExercise = mlFormLabel == 'good_form' || mlFormLabel == 'bad_form';
 
+    // Track consecutive null-classification frames to prevent ghost reps
+    if (mlFormLabel == null) {
+      _nullFormFrames++;
+    } else {
+      _nullFormFrames = 0;
+    }
+
     // ── 4. State machine ────────────────────────────────────────────────────
     switch (phase) {
       case ExercisePhase.idle:
@@ -165,9 +176,9 @@ class PushUpAnalyzer {
           if (signal < _topValue!) _topValue = signal;
         }
 
-        if (mlFormLabel == 'not_exercise') {
+        if (mlFormLabel == 'not_exercise' || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
-        } else if (_topValue != null && signal > _topValue! + _downThreshold) {
+        } else if (isExercise && _topValue != null && signal > _topValue! + _downThreshold) {
           phase = ExercisePhase.down;
           _bottomValue = signal;
         }
@@ -180,9 +191,9 @@ class PushUpAnalyzer {
           _bottomValue = signal;
         }
 
-        if (mlFormLabel == 'not_exercise') {
+        if (mlFormLabel == 'not_exercise' || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
-        } else if (_bottomValue != null && signal < _bottomValue! - _upThreshold) {
+        } else if (isExercise && _bottomValue != null && signal < _bottomValue! - _upThreshold) {
           // Rising back up from bottom → rep complete
           _finishRep(signal);
         }
@@ -233,6 +244,7 @@ class PushUpAnalyzer {
     _upFrameCount = 0;
     _goodFormFrames = 0;
     _badFormFrames  = 0;
+    _nullFormFrames = 0;
   }
 
   void _finishRep(double currentSignal) {
@@ -358,5 +370,6 @@ class PushUpAnalyzer {
     repHistory      = [];
     latestMetrics   = PoseMetrics();
     _upsideDownFrames = 0;
+    _nullFormFrames = 0;
   }
 }
