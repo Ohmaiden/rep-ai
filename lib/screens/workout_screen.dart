@@ -577,12 +577,18 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Widget _buildWorkoutView() {
     return OrientationBuilder(
       builder: (context, orientation) {
-        final mq = MediaQuery.of(context);
         final double deviceAngle;
         if (orientation == Orientation.portrait) {
           deviceAngle = 0;
         } else {
-          deviceAngle = mq.padding.left > 0 ? 90 : 270;
+          // Use padding comparison instead of padding.left > 0 for reliable
+          // landscape direction detection on iOS across all models.
+          final mq = MediaQuery.of(context);
+          if (mq.padding.left > mq.padding.right) {
+            deviceAngle = 90;
+          } else {
+            deviceAngle = 270;
+          }
         }
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.read<WorkoutState>().setDeviceAngle(deviceAngle);

@@ -63,7 +63,7 @@ class PushUpAnalyzer {
   double get _downThreshold => (_torsoLength ?? 0.15) * 0.15; // 15% of torso
   double get _upThreshold   => (_torsoLength ?? 0.15) * 0.10; // 10% of torso
 
-  static const double _minVis = 0.4;
+  static double get _minVis => Platform.isIOS ? 0.25 : 0.4;
 
   // ── Upside-down detection ────────────────────────────────────────────────────
   int _upsideDownFrames = 0;

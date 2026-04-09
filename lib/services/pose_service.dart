@@ -101,8 +101,6 @@ class PoseDetectionService {
       PoseLandmarkType.rightShoulder,
       PoseLandmarkType.leftElbow,
       PoseLandmarkType.rightElbow,
-      PoseLandmarkType.leftWrist,
-      PoseLandmarkType.rightWrist,
       PoseLandmarkType.leftHip,
       PoseLandmarkType.rightHip,
     ];
