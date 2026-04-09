@@ -176,7 +176,7 @@ class WorkoutState extends ChangeNotifier {
     // On iOS the TFLite model never loads (mlReady is always false).
     // Use the geometric classifier directly instead.
     if (Platform.isIOS) {
-      _currentForm = _ml.classifyGeometric(landmarks);
+      _currentForm = _ml.classifyGeometric(landmarks, deviceAngle: _deviceAngle);
     } else if (_ml.isReady) {
       _currentForm = _ml.classify(landmarks);
     }

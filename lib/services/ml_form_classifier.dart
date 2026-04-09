@@ -131,8 +131,11 @@ class MLFormClassifier {
   }
 
   /// Public wrapper so workout_state can call geometric classify directly on iOS.
-  FormPrediction? classifyGeometric(Map<String, Map<String, double>> landmarks) =>
-      _geometricClassify(landmarks);
+  FormPrediction? classifyGeometric(
+    Map<String, Map<String, double>> landmarks, {
+    double deviceAngle = 0,
+  }) =>
+      _geometricClassify(landmarks, deviceAngle: deviceAngle);
 
   /// Geometric form classifier for iOS — uses landmark positions instead of
   /// the TFLite model (which was trained on Android data and doesn't generalise).
@@ -141,7 +144,10 @@ class MLFormClassifier {
   ///   1. Enough key landmarks must be visible
   ///   2. Body must be roughly horizontal (not standing/sitting)
   ///   3. Elbow angle must be in push-up range
-  FormPrediction? _geometricClassify(Map<String, Map<String, double>> landmarks) {
+  FormPrediction? _geometricClassify(
+    Map<String, Map<String, double>> landmarks, {
+    double deviceAngle = 0,
+  }) {
     final lS = landmarks['LEFT_SHOULDER'];
     final rS = landmarks['RIGHT_SHOULDER'];
     final lH = landmarks['LEFT_HIP'];
@@ -168,33 +174,47 @@ class MLFormClassifier {
     final shoulderX = (lS['x']! + rS['x']!) / 2;
     final hipX = (lH['x']! + rH['x']!) / 2;
 
-    // ── 1. Standing / sitting detection ──────────────────────────────────────
-    // When standing or sitting upright the vertical distance between shoulders
-    // and hips is large relative to horizontal distance. In a push-up the body
-    // is mostly horizontal so the vertical gap is small.
-    final verticalGap = (hipY - shoulderY).abs();
-    final horizontalGap = (hipX - shoulderX).abs();
+    // In landscape the coordinate axes are swapped relative to the real world:
+    // the "gravity" axis is X (not Y) and the "along-body" axis is Y (not X).
+    // Use orientation-aware gap names so the checks work in both orientations.
+    final isLandscape = deviceAngle == 90 || deviceAngle == 270;
+    final double gravityGap;   // gap along the real-world vertical (gravity) axis
+    final double alongBodyGap; // gap along the real-world horizontal (body-length) axis
+    if (isLandscape) {
+      gravityGap = (hipX - shoulderX).abs();
+      alongBodyGap = (hipY - shoulderY).abs();
+    } else {
+      gravityGap = (hipY - shoulderY).abs();
+      alongBodyGap = (hipX - shoulderX).abs();
+    }
 
-    // Reject if nose is well above hips (standing/sitting upright)
+    // ── 1. Standing / sitting detection ──────────────────────────────────────
+    // Reject if nose is well above hips along the gravity axis (standing/sitting)
     if (nose != null) {
-      final noseY = nose['y']!;
-      final noseToHipVertical = (hipY - noseY).abs();
-      if (noseY < hipY && noseToHipVertical > 0.30) {
+      final double noseGravity;
+      final double hipGravity;
+      if (isLandscape) {
+        noseGravity = nose['x']!;
+        hipGravity = (lH['x']! + rH['x']!) / 2;
+      } else {
+        noseGravity = nose['y']!;
+        hipGravity = hipY;
+      }
+      final noseToHipGravity = (hipGravity - noseGravity).abs();
+      if (noseGravity < hipGravity && noseToHipGravity > 0.30) {
         return const FormPrediction('not_exercise', 0.8, [0.05, 0.05, 0.9]);
       }
     }
 
     // Reject if body is clearly more vertical than horizontal
-    // (verticalGap much larger than horizontalGap → upright posture)
-    if (verticalGap > 0.25 && verticalGap > horizontalGap * 1.5) {
+    if (gravityGap > 0.25 && gravityGap > alongBodyGap * 1.5) {
       return const FormPrediction('not_exercise', 0.75, [0.05, 0.1, 0.85]);
     }
 
     // ── 2. Body must be roughly horizontal ───────────────────────────────────
-    // In a push-up position the torso is near-horizontal: the shoulder-hip line
-    // should be more horizontal than vertical (horizontalGap >= verticalGap),
-    // OR the vertical gap should be small (< 0.15 in normalised coords).
-    final bodyHorizontal = verticalGap < 0.15 || horizontalGap >= verticalGap;
+    // In push-up position the torso is near-horizontal: the along-body gap
+    // should be >= gravity gap, OR the gravity gap should be small.
+    final bodyHorizontal = gravityGap < 0.15 || alongBodyGap >= gravityGap;
     if (!bodyHorizontal) {
       return const FormPrediction('not_exercise', 0.65, [0.1, 0.1, 0.8]);
     }
