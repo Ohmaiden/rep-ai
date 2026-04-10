@@ -490,20 +490,50 @@ class MLFormClassifier {
     final rS = landmarks['RIGHT_SHOULDER'];
     final lH = landmarks['LEFT_HIP'];
     final rH = landmarks['RIGHT_HIP'];
+    final lE = landmarks['LEFT_ELBOW'];
+    final rE = landmarks['RIGHT_ELBOW'];
+    final lW = landmarks['LEFT_WRIST'];
+    final rW = landmarks['RIGHT_WRIST'];
     final nose = landmarks['NOSE'];
 
     if (lS == null || rS == null) return null;
     final shoulderVis = ((lS['visibility'] ?? 0.0) + (rS['visibility'] ?? 0.0)) / 2;
-    if (shoulderVis < 0.2) return null;
+    if (shoulderVis < 0.25) return null;
+
+    // ── Require a full-body pose, not just head/shoulders ────────────────────
+    // Without hips + at least one arm visible we can't tell push-ups apart
+    // from someone sitting close to the camera bobbing their head, so we
+    // refuse to classify those frames as exercise.
+    final lHvis = lH?['visibility'] ?? 0.0;
+    final rHvis = rH?['visibility'] ?? 0.0;
+    final hipVis = (lHvis + rHvis) / 2;
+    if (hipVis < 0.25 || lH == null || rH == null) {
+      return const FormPrediction('not_exercise', 0.75, [0.1, 0.1, 0.8]);
+    }
+
+    final lEvis = lE?['visibility'] ?? 0.0;
+    final rEvis = rE?['visibility'] ?? 0.0;
+    final lWvis = lW?['visibility'] ?? 0.0;
+    final rWvis = rW?['visibility'] ?? 0.0;
+    final leftArmOk = lE != null && lW != null && lEvis > 0.25 && lWvis > 0.25;
+    final rightArmOk = rE != null && rW != null && rEvis > 0.25 && rWvis > 0.25;
+    if (!leftArmOk && !rightArmOk) {
+      return const FormPrediction('not_exercise', 0.7, [0.1, 0.1, 0.8]);
+    }
 
     final shoulderY = (lS['y']! + rS['y']!) / 2;
+    final hipY = (lH['y']! + rH['y']!) / 2;
 
-    // ── Not-exercise (standing / sitting / upright) detection ──────────────
-    // These thresholds are looser than the iPhone classifier's so they reliably
-    // catch the "I'm setting up the iPad" case where the user is upright in
-    // front of the camera.
+    // ── Standing / sitting / upright detection ───────────────────────────────
 
-    // Check 1: nose noticeably above shoulders → upright body, head up.
+    // Hips clearly below shoulders → upright (standing/sitting), not a push-up.
+    // In a real push-up the body is roughly horizontal so hips and shoulders
+    // sit at similar y in the image.
+    if (hipY - shoulderY > 0.18) {
+      return const FormPrediction('not_exercise', 0.85, [0.05, 0.05, 0.9]);
+    }
+
+    // Nose noticeably above shoulders → head held high, upright body.
     if (nose != null) {
       final noseAboveShoulders = shoulderY - nose['y']!;
       if (noseAboveShoulders > 0.10) {
@@ -511,23 +541,28 @@ class MLFormClassifier {
       }
     }
 
-    // Check 2: shoulders sit high in the frame → torso is vertical / standing.
+    // Shoulders sit high in the frame → torso vertical / user not low enough.
     if (shoulderY < 0.38) {
       return const FormPrediction('not_exercise', 0.75, [0.1, 0.1, 0.8]);
     }
 
-    // Check 3: hips visible and clearly below shoulders → standing/kneeling.
-    final lHvis = lH?['visibility'] ?? 0.0;
-    final rHvis = rH?['visibility'] ?? 0.0;
-    if ((lHvis + rHvis) / 2 > 0.2 && lH != null && rH != null) {
-      final hipY = (lH['y']! + rH['y']!) / 2;
-      if (hipY - shoulderY > 0.22) {
-        return const FormPrediction('not_exercise', 0.85, [0.05, 0.05, 0.9]);
-      }
+    // ── Push-up arm configuration check ──────────────────────────────────────
+    // At the top of a push-up the elbow is close to straight (~170°); at the
+    // bottom it bends to ~60°. Anything outside that envelope is not a valid
+    // push-up pose and shouldn't count toward reps.
+    double? elbowAngle;
+    if (leftArmOk) {
+      elbowAngle = _angle(lS, lE, lW);
+    } else if (rightArmOk) {
+      elbowAngle = _angle(rS, rE, rW);
+    }
+    if (elbowAngle == null || elbowAngle < 40 || elbowAngle > 180) {
+      return const FormPrediction('not_exercise', 0.7, [0.1, 0.1, 0.8]);
     }
 
-    // ── Otherwise: in push-up territory — call it good form so the rep
-    // counter's shoulder-Y oscillation tracker takes over and counts reps.
+    // Passed every gate — call it good form so the rep state machine counts
+    // shoulder-Y oscillation (which uses iPad-specific stricter thresholds in
+    // PushUpAnalyzer to avoid tiny-movement false positives).
     return const FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
   }
 

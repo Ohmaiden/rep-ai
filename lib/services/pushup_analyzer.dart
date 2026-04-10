@@ -36,6 +36,10 @@ class PushUpAnalyzer {
   /// Total completed attempts (good + bad).
   int attemptCount = 0;
 
+  /// Set from WorkoutState — when true, uses stricter rep-counter thresholds
+  /// to avoid counting tiny torso wiggles as reps on iPad.
+  bool isTablet = false;
+
   ExercisePhase phase = ExercisePhase.idle;
 
   // Smoothing
@@ -59,9 +63,17 @@ class PushUpAnalyzer {
   // Lowest point tracking during DOWN phase
   double? _bottomValue;
 
-  // Thresholds scale with torso length so sensitivity adapts to camera distance
-  double get _downThreshold => (_torsoLength ?? 0.15) * 0.15; // 15% of torso
-  double get _upThreshold   => (_torsoLength ?? 0.15) * 0.10; // 10% of torso
+  // Thresholds scale with torso length so sensitivity adapts to camera distance.
+  // iPad uses stricter thresholds because its lenient form classifier would
+  // otherwise let tiny torso movements through as reps.
+  double get _downThreshold {
+    final torso = _torsoLength ?? 0.15;
+    return torso * (isTablet ? 0.28 : 0.15); // 28% of torso on iPad, 15% elsewhere
+  }
+  double get _upThreshold {
+    final torso = _torsoLength ?? 0.15;
+    return torso * (isTablet ? 0.20 : 0.10); // 20% of torso on iPad, 10% elsewhere
+  }
 
   static double get _minVis => Platform.isIOS ? 0.35 : 0.4;
 
