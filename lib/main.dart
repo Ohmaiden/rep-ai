@@ -144,6 +144,11 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navBg = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final navUnselected = isDark ? Colors.white54 : const Color(0xFF64748B);
+    final navTopBorder = isDark ? null : const Color(0xFFE2E8F0);
+
     return Scaffold(
       body: IndexedStack(
         index: _stackIndex,
@@ -154,7 +159,12 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
       bottomNavigationBar: Container(
-        color: const Color(0xFF0F172A),
+        decoration: BoxDecoration(
+          color: navBg,
+          border: navTopBorder == null
+              ? null
+              : Border(top: BorderSide(color: navTopBorder, width: 1)),
+        ),
         child: Center(
           heightFactor: 1,
           child: ConstrainedBox(
@@ -163,9 +173,9 @@ class _MainShellState extends State<MainShell> {
               currentIndex: _selectedIndex,
               onTap: _onTap,
               type: BottomNavigationBarType.fixed,
-              backgroundColor: const Color(0xFF0F172A),
+              backgroundColor: navBg,
               selectedItemColor: const Color(0xFF2563EB),
-              unselectedItemColor: Colors.white54,
+              unselectedItemColor: navUnselected,
               selectedFontSize: 12,
               unselectedFontSize: 11,
               items: const [
