@@ -865,21 +865,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 6),
+                        // Pencil affordance — signals the row is tappable
+                        // without an extra line of hint text.
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: theme.textTheme.bodyMedium?.color
+                              ?.withValues(alpha: 0.6),
+                        ),
                       ],
                     ),
-                    // iOS keeps the "tap to edit" hint; on Android we drop it
-                    // for a sleeker look (the row is still tappable).
-                    if (!Platform.isAndroid) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '✎ tap to edit',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withValues(alpha: 0.5)),
-                        textAlign: TextAlign.right,
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -934,21 +930,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 6),
+                        // Pencil affordance — signals the row is tappable
+                        // without an extra line of hint text.
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: theme.textTheme.bodyMedium?.color
+                              ?.withValues(alpha: 0.6),
+                        ),
                       ],
                     ),
-                    // iOS keeps the "tap to edit" hint; on Android we drop it
-                    // for a sleeker look (the row is still tappable).
-                    if (!Platform.isAndroid) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '✎ tap to edit',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withValues(alpha: 0.5)),
-                        textAlign: TextAlign.right,
-                      ),
-                    ],
                   ],
                 ),
               ),
