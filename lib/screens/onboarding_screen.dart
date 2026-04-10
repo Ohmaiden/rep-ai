@@ -24,6 +24,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
   static const int _totalPages = 6;
 
+  // Theme palette — resolved once at the top of build() and used by every
+  // _buildX helper so the onboarding flow adapts to light / dark mode.
+  late _Palette _p;
+
   // Fitness level state
   String? _selectedFitnessLevel; // "beginner" | "intermediate" | "advanced"
 
@@ -127,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: _p.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -150,7 +154,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: _p.divider,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -158,10 +162,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 16),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: _p.primary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -170,12 +174,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     autofocus: true,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: _p.primary),
                     decoration: InputDecoration(
                       hintText: '$min – $max',
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      hintStyle: TextStyle(color: _p.faint),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white24),
+                        borderSide: BorderSide(color: _p.divider),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -184,7 +188,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.06),
+                      fillColor: _p.subtleFill,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -194,8 +198,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white54,
-                            side: const BorderSide(color: Colors.white24),
+                            foregroundColor: _p.muted,
+                            side: BorderSide(color: _p.divider),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
@@ -248,11 +252,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _p = _Palette.of(context);
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: _p.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -263,9 +268,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: EdgeInsets.all(isLandscape ? 8.0 : 16.0),
                 child: TextButton(
                   onPressed: _skip,
-                  child: const Text(
+                  child: Text(
                     'Skip',
-                    style: TextStyle(color: Colors.white54, fontSize: 15),
+                    style: TextStyle(color: _p.muted, fontSize: 15),
                   ),
                 ),
               ),
@@ -303,7 +308,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     decoration: BoxDecoration(
                       color: i == _page
                           ? const Color(0xFF2563EB)
-                          : Colors.white24,
+                          : _p.divider,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -451,10 +456,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Text(
       'Welcome to Rep AI',
       textAlign: textAlign,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.w800,
-        color: Colors.white,
+        color: _p.primary,
       ),
     );
   }
@@ -463,7 +468,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Text(
       'AI-powered rep counting that only counts perfect form.\nEvery rep matters.',
       textAlign: textAlign,
-      style: const TextStyle(fontSize: 16, color: Colors.white60, height: 1.5),
+      style: TextStyle(fontSize: 16, color: _p.tertiary, height: 1.5),
     );
   }
 
@@ -471,7 +476,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Text(
       'Theme matches your system. Tap ⚙ Settings on the home screen to change it anytime.',
       textAlign: textAlign,
-      style: const TextStyle(fontSize: 12, color: Colors.white38),
+      style: TextStyle(fontSize: 12, color: _p.faint),
     );
   }
 
@@ -571,7 +576,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           style: TextStyle(
             fontSize: compact ? 18 : 26,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: _p.primary,
           ),
         ),
         SizedBox(height: compact ? 4 : 8),
@@ -580,7 +585,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: compact ? 13 : 15,
-            color: Colors.white54,
+            color: _p.muted,
           ),
         ),
       ],
@@ -654,10 +659,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         decoration: BoxDecoration(
           color: selected
               ? const Color(0xFF2563EB).withValues(alpha: 0.25)
-              : Colors.white.withValues(alpha: 0.06),
+              : _p.subtleFill,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? const Color(0xFF2563EB) : Colors.white24,
+            color: selected ? const Color(0xFF2563EB) : _p.divider,
             width: selected ? 2 : 1,
           ),
         ),
@@ -674,7 +679,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: TextStyle(
                       fontSize: compact ? 13 : 17,
                       fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : Colors.white70,
+                      color: selected ? Colors.white : _p.secondary,
                     ),
                   ),
                   SizedBox(height: compact ? 1 : 2),
@@ -682,7 +687,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: compact ? 11 : 14,
-                      color: selected ? Colors.white60 : Colors.white38,
+                      color: selected ? _p.tertiary : _p.faint,
                     ),
                   ),
                 ],
@@ -721,13 +726,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Set up your camera',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: _p.primary,
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -752,11 +757,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Prop your phone up so the camera can see your full body. About 2 metres away works best.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 16, color: Colors.white60, height: 1.5),
+                      fontSize: 16, color: _p.tertiary, height: 1.5),
                 ),
               ],
             ),
@@ -805,12 +810,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Set up your camera',
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: _p.primary,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -824,11 +829,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Prop your phone up so the camera can see your full body. About 2 metres away works best.',
                               style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white60,
+                                  color: _p.tertiary,
                                   height: 1.4),
                             ),
                           ],
@@ -921,12 +926,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           height: headSz,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.15),
-            border: Border.all(color: Colors.white38, width: 2),
+            color: _p.fillStrong,
+            border: Border.all(color: _p.faint, width: 2),
           ),
         ),
         const SizedBox(height: 2),
-        Icon(Icons.accessibility_new, size: bodySz, color: Colors.white54),
+        Icon(Icons.accessibility_new, size: bodySz, color: _p.muted),
       ],
     );
   }
@@ -1030,10 +1035,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Text(
       'Rep AI needs your camera',
       textAlign: textAlign,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.w800,
-        color: Colors.white,
+        color: _p.primary,
       ),
     );
   }
@@ -1042,7 +1047,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Text(
       'We use it to track your movement in real time — nothing is recorded or stored. We\'ll ask for permission next.',
       textAlign: textAlign,
-      style: const TextStyle(fontSize: 16, color: Colors.white60, height: 1.5),
+      style: TextStyle(fontSize: 16, color: _p.tertiary, height: 1.5),
     );
   }
 
@@ -1081,15 +1086,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: _p.fillAlt,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: Colors.white54),
+          child: Icon(icon, size: 20, color: _p.muted),
         ),
         const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.white38),
+          style: TextStyle(fontSize: 12, color: _p.faint),
         ),
       ],
     );
@@ -1126,20 +1131,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   size: 48, color: Color(0xFF2563EB)),
             ),
             const SizedBox(height: 40),
-            const Text(
+            Text(
               'Follow the ding',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: _p.primary,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Only move to the next rep when you hear the sound and see the number change.\n\nGo at a steady, controlled pace — the AI needs to clearly see each rep to count it.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.white60, height: 1.5),
+              style: TextStyle(fontSize: 16, color: _p.tertiary, height: 1.5),
             ),
           ],
         ),
@@ -1181,7 +1186,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(width: 16),
                       // Right ~60%: title + subtitle
-                      const Expanded(
+                      Expanded(
                         flex: 6,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1192,15 +1197,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: _p.primary,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Only move to the next rep when you hear the sound and see the number change.\n\nGo at a steady, controlled pace — the AI needs to clearly see each rep to count it.',
                               style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white60,
+                                  color: _p.tertiary,
                                   height: 1.4),
                             ),
                           ],
@@ -1237,20 +1242,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Set your first goal',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: _p.primary,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'How many reps this week?',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.white54),
+              style: TextStyle(fontSize: 16, color: _p.muted),
             ),
             const SizedBox(height: 40),
 
@@ -1260,28 +1265,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Text(
               'reps / week',
               style: TextStyle(
-                  fontSize: 15, color: Colors.white.withValues(alpha: 0.4)),
+                  fontSize: 15, color: _p.faint),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Tap the number to type a custom value',
-              style: TextStyle(fontSize: 11, color: Colors.white38),
+              style: TextStyle(fontSize: 11, color: _p.faint),
             ),
 
             const SizedBox(height: 32),
 
             // ── Days per week picker ──────────────────────────────────────
-            const Text(
+            Text(
               'How many days per week?',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Colors.white70),
+              style: TextStyle(fontSize: 15, color: _p.secondary),
             ),
             const SizedBox(height: 16),
             _daysPerWeekPicker(large: true),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Tap the number to type a custom value',
-              style: TextStyle(fontSize: 11, color: Colors.white38),
+              style: TextStyle(fontSize: 11, color: _p.faint),
             ),
             const SizedBox(height: 12),
 
@@ -1308,8 +1313,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           children: [
             // Title block — ultra compact
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 2, 20, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1319,18 +1324,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: _p.primary,
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text(
                     '·',
-                    style: TextStyle(color: Colors.white24, fontSize: 18),
+                    style: TextStyle(color: _p.divider, fontSize: 18),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text(
                     'How many reps this week?',
-                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                    style: TextStyle(fontSize: 12, color: _p.muted),
                   ),
                 ],
               ),
@@ -1351,18 +1356,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'Reps / week',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.white70),
+                                fontSize: 11, color: _p.secondary),
                           ),
                           const SizedBox(height: 3),
                           _weeklyRepsPicker(large: false, tiny: true),
                           const SizedBox(height: 1),
-                          const Text(
+                          Text(
                             'Tap to edit',
                             style: TextStyle(
-                                fontSize: 9, color: Colors.white38),
+                                fontSize: 9, color: _p.faint),
                           ),
                         ],
                       ),
@@ -1372,7 +1377,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Container(
                       width: 1,
                       height: 50,
-                      color: Colors.white12,
+                      color: _p.disabled,
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                     ),
 
@@ -1382,18 +1387,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'Days / week',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.white70),
+                                fontSize: 11, color: _p.secondary),
                           ),
                           const SizedBox(height: 3),
                           _daysPerWeekPicker(large: false, tiny: true),
                           const SizedBox(height: 1),
-                          const Text(
+                          Text(
                             'Tap to edit',
                             style: TextStyle(
-                                fontSize: 9, color: Colors.white38),
+                                fontSize: 9, color: _p.faint),
                           ),
                         ],
                       ),
@@ -1452,7 +1457,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: TextStyle(
                   fontSize: large ? 48 : (tiny ? 36 : 38),
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: _p.primary,
                   height: 1,
                   decoration: TextDecoration.underline,
                   decorationColor: const Color(0xFF2563EB),
@@ -1506,7 +1511,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: TextStyle(
                   fontSize: large ? 44 : (tiny ? 36 : 38),
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: _p.primary,
                   height: 1,
                   decoration: TextDecoration.underline,
                   decorationColor: const Color(0xFF2563EB),
@@ -1594,20 +1599,88 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         decoration: BoxDecoration(
           color: enabled
               ? const Color(0xFF2563EB).withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.04),
+              : _p.subtleFill,
           shape: BoxShape.circle,
           border: Border.all(
-            color: enabled ? const Color(0xFF2563EB) : Colors.white12,
+            color: enabled ? const Color(0xFF2563EB) : _p.disabled,
             width: 2,
           ),
         ),
         child: Icon(
           icon,
           size: iconSz,
-          color: enabled ? const Color(0xFF2563EB) : Colors.white24,
+          color: enabled ? const Color(0xFF2563EB) : _p.divider,
         ),
       ),
     );
   }
 
+}
+
+// ── Theme palette ───────────────────────────────────────────────────────────
+// The onboarding flow was originally built dark-only. This palette is
+// resolved once per build and used throughout the _buildX helpers so the
+// whole flow adapts to the current phone theme (light / dark).
+class _Palette {
+  final Color bg;           // scaffold background
+  final Color surface;      // cards, sheets, elevated surfaces
+  final Color primary;      // primary text / strong icons
+  final Color secondary;    // slightly softer text  (was white70)
+  final Color tertiary;     // muted text            (was white60)
+  final Color muted;        // more muted            (was white54)
+  final Color faint;        // faintest text/icons   (was white38)
+  final Color divider;      // borders / dividers    (was white24)
+  final Color disabled;     // disabled borders      (was white12)
+  final Color subtleFill;   // ~6% white fill
+  final Color fillAlt;      // ~8% white fill
+  final Color fillStrong;   // ~15% white fill
+
+  const _Palette({
+    required this.bg,
+    required this.surface,
+    required this.primary,
+    required this.secondary,
+    required this.tertiary,
+    required this.muted,
+    required this.faint,
+    required this.divider,
+    required this.disabled,
+    required this.subtleFill,
+    required this.fillAlt,
+    required this.fillStrong,
+  });
+
+  static _Palette of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return const _Palette(
+        bg: Color(0xFF0F172A),
+        surface: Color(0xFF1E293B),
+        primary: Colors.white,
+        secondary: Colors.white70,
+        tertiary: Colors.white60,
+        muted: Colors.white54,
+        faint: Colors.white38,
+        divider: Colors.white24,
+        disabled: Colors.white12,
+        subtleFill: Color(0x0FFFFFFF),  // white @ ~6%
+        fillAlt: Color(0x14FFFFFF),     // white @ ~8%
+        fillStrong: Color(0x26FFFFFF),  // white @ ~15%
+      );
+    }
+    return const _Palette(
+      bg: Color(0xFFF8FAFC),
+      surface: Colors.white,
+      primary: Color(0xFF0F172A),
+      secondary: Color(0xFF334155),
+      tertiary: Color(0xFF475569),
+      muted: Color(0xFF64748B),
+      faint: Color(0xFF94A3B8),
+      divider: Color(0xFFCBD5E1),
+      disabled: Color(0xFFE2E8F0),
+      subtleFill: Color(0xFFF1F5F9),
+      fillAlt: Color(0xFFE2E8F0),
+      fillStrong: Color(0xFFCBD5E1),
+    );
+  }
 }
