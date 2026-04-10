@@ -3,6 +3,8 @@
 /// Main screen with streak calendar, stats, and workout buttons.
 library;
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -963,12 +965,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Tap-to-edit: daily target ──────────────────────────────────────────────
+  // ── Shared rep-count prompt ────────────────────────────────────────────────
+  // On iPad, iOS shows a tiny floating numeric keypad in the corner for
+  // TextInputType.number. To match the phone experience, on iPad we suppress
+  // the system keyboard and render an in-app numeric keypad inside the sheet.
 
-  Future<void> _editDailyGoal() async {
-    final current = _adjustedDailyTarget > 0 ? _adjustedDailyTarget : 20;
+  bool _isIPad(BuildContext context) {
+    if (!Platform.isIOS) return false;
+    return MediaQuery.of(context).size.shortestSide >= 600;
+  }
+
+  Future<int?> _promptForRepCount({
+    required String title,
+    required String hint,
+    required int current,
+  }) {
     final ctrl = TextEditingController(text: '$current');
-    final result = await showModalBottomSheet<int>(
+    final useInAppKeypad = _isIPad(context);
+
+    return showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
@@ -976,6 +991,11 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        void submit() {
+          final v = int.tryParse(ctrl.text) ?? current;
+          Navigator.pop(ctx, v.clamp(1, 99999));
+        }
+
         return SafeArea(
           bottom: true,
           child: SingleChildScrollView(
@@ -997,27 +1017,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Daily target (reps)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: ctrl,
-                    autofocus: true,
+                    autofocus: !useInAppKeypad,
+                    readOnly: useInAppKeypad,
+                    showCursor: true,
                     keyboardType: TextInputType.number,
+                    textAlign: useInAppKeypad ? TextAlign.center : TextAlign.start,
+                    style: useInAppKeypad
+                        ? const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)
+                        : null,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. 20',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      border: const OutlineInputBorder(),
                     ),
+                    onSubmitted: (_) => submit(),
                   ),
+                  if (useInAppKeypad) ...[
+                    const SizedBox(height: 16),
+                    _InAppNumericKeypad(controller: ctrl, maxLength: 5),
+                  ],
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final v = int.tryParse(ctrl.text) ?? current;
-                      Navigator.pop(ctx, v.clamp(1, 99999));
-                    },
+                    onPressed: submit,
                     child: const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
                 ],
@@ -1026,6 +1054,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  // ── Tap-to-edit: daily target ──────────────────────────────────────────────
+
+  Future<void> _editDailyGoal() async {
+    final current = _adjustedDailyTarget > 0 ? _adjustedDailyTarget : 20;
+    final result = await _promptForRepCount(
+      title: 'Daily target (reps)',
+      hint: 'e.g. 20',
+      current: current,
     );
 
     if (result != null && mounted) {
@@ -1042,65 +1081,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _editWeeklyGoal() async {
     final current = _weeklyGoalReps > 0 ? _weeklyGoalReps : 100;
-    final ctrl = TextEditingController(text: '$current');
-    final result = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          bottom: true,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 36, height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Weekly goal (reps)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: ctrl,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. 100',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      final v = int.tryParse(ctrl.text) ?? current;
-                      Navigator.pop(ctx, v.clamp(1, 99999));
-                    },
-                    child: const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    final result = await _promptForRepCount(
+      title: 'Weekly goal (reps)',
+      hint: 'e.g. 100',
+      current: current,
     );
 
     if (result != null && mounted) {
@@ -1532,6 +1516,90 @@ class _GoalBreakdownScreenState extends State<_GoalBreakdownScreen> {
         ),
         ),
         ),
+      ),
+    );
+  }
+}
+
+// ── In-app numeric keypad (used on iPad) ─────────────────────────────────────
+// Shown inside the daily/weekly goal bottom sheet on iPad, where iOS would
+// otherwise pop a tiny floating numeric keyboard in the corner.
+
+class _InAppNumericKeypad extends StatelessWidget {
+  final TextEditingController controller;
+  final int maxLength;
+
+  const _InAppNumericKeypad({
+    required this.controller,
+    this.maxLength = 5,
+  });
+
+  void _append(String digit) {
+    final text = controller.text;
+    if (text.length >= maxLength) return;
+    // Avoid leading zeros (so "0" + "5" doesn't become "05").
+    final next = (text == '0') ? digit : '$text$digit';
+    controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  void _backspace() {
+    final text = controller.text;
+    if (text.isEmpty) return;
+    final next = text.substring(0, text.length - 1);
+    controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  void _clear() {
+    controller.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+    );
+  }
+
+  Widget _key(BuildContext context, {required Widget child, required VoidCallback onTap}) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: SizedBox(
+          height: 56,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: onTap,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _digitKey(BuildContext context, String d) =>
+      _key(context, onTap: () => _append(d), child: Text(d, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)));
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [_digitKey(context, '1'), _digitKey(context, '2'), _digitKey(context, '3')]),
+          Row(children: [_digitKey(context, '4'), _digitKey(context, '5'), _digitKey(context, '6')]),
+          Row(children: [_digitKey(context, '7'), _digitKey(context, '8'), _digitKey(context, '9')]),
+          Row(children: [
+            _key(context, onTap: _clear, child: const Text('C', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+            _digitKey(context, '0'),
+            _key(context, onTap: _backspace, child: const Icon(Icons.backspace_outlined)),
+          ]),
+        ],
       ),
     );
   }
