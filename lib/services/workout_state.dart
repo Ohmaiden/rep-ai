@@ -36,6 +36,11 @@ class WorkoutState extends ChangeNotifier {
   double get deviceAngle => _deviceAngle;
   void setDeviceAngle(double angle) => _deviceAngle = angle;
 
+  /// Set once from the workout screen using MediaQuery's shortestSide.
+  /// Forwarded to MLFormClassifier so it can take the iPad-specific path.
+  bool get isTablet => _ml.isTablet;
+  void setIsTablet(bool value) => _ml.isTablet = value;
+
   /// Attach the audio service so rep sounds fire synchronously with increments.
   void setAudioService(WorkoutAudioService audio) => _audio = audio;
 

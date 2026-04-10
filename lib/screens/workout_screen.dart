@@ -123,6 +123,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Tell WorkoutState whether we're on a tablet (iPad) so the form
+    // classifier can use the simplified iPad-specific path.
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    context.read<WorkoutState>().setIsTablet(isTablet);
+  }
+
+  @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     WakelockPlus.disable();
