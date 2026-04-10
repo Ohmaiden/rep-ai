@@ -32,10 +32,9 @@ class FormPrediction {
 class MLFormClassifier {
   Interpreter? _interpreter;
 
-  /// Set externally from the workout screen using MediaQuery shortestSide.
-  /// On iPad the geometric classifier uses a simplified, more lenient path
-  /// because the existing iPhone-tuned thresholds misclassify both setup
-  /// (standing) and the actual push-up position on the wider 4:3 frame.
+  /// Set externally from the workout screen. Currently only used to decide
+  /// whether the workout screen should force portrait orientation on iPad —
+  /// the classifier itself runs the same iPhone-tuned logic on both devices.
   bool isTablet = false;
 
   // Must match the order used during training (see train_classifier.py)
@@ -156,9 +155,6 @@ class MLFormClassifier {
     Map<String, Map<String, double>> landmarks, {
     double deviceAngle = 0,
   }) {
-    // iPad uses a simplified path — see _iPadGeometricClassify.
-    if (isTablet) return _iPadGeometricClassify(landmarks);
-
     final lS = landmarks['LEFT_SHOULDER'];
     final rS = landmarks['RIGHT_SHOULDER'];
     final lH = landmarks['LEFT_HIP'];
@@ -469,101 +465,6 @@ class MLFormClassifier {
       return const FormPrediction('bad_form', 0.55, [0.55, 0.15, 0.3]);
     }
     return const FormPrediction('not_exercise', 0.5, [0.15, 0.15, 0.7]);
-  }
-
-  /// iPad-only geometric classifier — intentionally simple and lenient.
-  ///
-  /// The iPhone-tuned heuristics in `_geometricClassify` misbehave on iPad's
-  /// wider 4:3 frame: standing-up gets through as good_form (false reps during
-  /// setup) and the actual push-up position gets flagged as bad_form (no reps
-  /// counted). We don't have enough iPad data to tune the full classifier, so
-  /// on iPad we just:
-  ///   1. Aggressively detect standing/sitting → not_exercise
-  ///   2. Otherwise call it good_form so the rep counter does its job
-  ///
-  /// This is a "make it work for App Store review on iPad" path; iPhone is
-  /// untouched and still uses the full geometric classifier.
-  FormPrediction? _iPadGeometricClassify(
-    Map<String, Map<String, double>> landmarks,
-  ) {
-    final lS = landmarks['LEFT_SHOULDER'];
-    final rS = landmarks['RIGHT_SHOULDER'];
-    final lH = landmarks['LEFT_HIP'];
-    final rH = landmarks['RIGHT_HIP'];
-    final lE = landmarks['LEFT_ELBOW'];
-    final rE = landmarks['RIGHT_ELBOW'];
-    final lW = landmarks['LEFT_WRIST'];
-    final rW = landmarks['RIGHT_WRIST'];
-    final nose = landmarks['NOSE'];
-
-    if (lS == null || rS == null) return null;
-    final shoulderVis = ((lS['visibility'] ?? 0.0) + (rS['visibility'] ?? 0.0)) / 2;
-    if (shoulderVis < 0.25) return null;
-
-    // ── Require a full-body pose, not just head/shoulders ────────────────────
-    // Without hips + at least one arm visible we can't tell push-ups apart
-    // from someone sitting close to the camera bobbing their head, so we
-    // refuse to classify those frames as exercise.
-    final lHvis = lH?['visibility'] ?? 0.0;
-    final rHvis = rH?['visibility'] ?? 0.0;
-    final hipVis = (lHvis + rHvis) / 2;
-    if (hipVis < 0.25 || lH == null || rH == null) {
-      return const FormPrediction('not_exercise', 0.75, [0.1, 0.1, 0.8]);
-    }
-
-    final lEvis = lE?['visibility'] ?? 0.0;
-    final rEvis = rE?['visibility'] ?? 0.0;
-    final lWvis = lW?['visibility'] ?? 0.0;
-    final rWvis = rW?['visibility'] ?? 0.0;
-    final leftArmOk = lE != null && lW != null && lEvis > 0.25 && lWvis > 0.25;
-    final rightArmOk = rE != null && rW != null && rEvis > 0.25 && rWvis > 0.25;
-    if (!leftArmOk && !rightArmOk) {
-      return const FormPrediction('not_exercise', 0.7, [0.1, 0.1, 0.8]);
-    }
-
-    final shoulderY = (lS['y']! + rS['y']!) / 2;
-    final hipY = (lH['y']! + rH['y']!) / 2;
-
-    // ── Standing / sitting / upright detection ───────────────────────────────
-
-    // Hips clearly below shoulders → upright (standing/sitting), not a push-up.
-    // In a real push-up the body is roughly horizontal so hips and shoulders
-    // sit at similar y in the image.
-    if (hipY - shoulderY > 0.18) {
-      return const FormPrediction('not_exercise', 0.85, [0.05, 0.05, 0.9]);
-    }
-
-    // Nose noticeably above shoulders → head held high, upright body.
-    if (nose != null) {
-      final noseAboveShoulders = shoulderY - nose['y']!;
-      if (noseAboveShoulders > 0.10) {
-        return const FormPrediction('not_exercise', 0.85, [0.05, 0.05, 0.9]);
-      }
-    }
-
-    // Shoulders sit high in the frame → torso vertical / user not low enough.
-    if (shoulderY < 0.38) {
-      return const FormPrediction('not_exercise', 0.75, [0.1, 0.1, 0.8]);
-    }
-
-    // ── Push-up arm configuration check ──────────────────────────────────────
-    // At the top of a push-up the elbow is close to straight (~170°); at the
-    // bottom it bends to ~60°. Anything outside that envelope is not a valid
-    // push-up pose and shouldn't count toward reps.
-    double? elbowAngle;
-    if (leftArmOk) {
-      elbowAngle = _angle(lS, lE, lW);
-    } else if (rightArmOk) {
-      elbowAngle = _angle(rS, rE, rW);
-    }
-    if (elbowAngle == null || elbowAngle < 40 || elbowAngle > 180) {
-      return const FormPrediction('not_exercise', 0.7, [0.1, 0.1, 0.8]);
-    }
-
-    // Passed every gate — call it good form so the rep state machine counts
-    // shoulder-Y oscillation (which uses iPad-specific stricter thresholds in
-    // PushUpAnalyzer to avoid tiny-movement false positives).
-    return const FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
   }
 
   /// Calculate angle at point B given three landmarks A, B, C (in degrees).

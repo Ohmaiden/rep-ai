@@ -36,8 +36,8 @@ class PushUpAnalyzer {
   /// Total completed attempts (good + bad).
   int attemptCount = 0;
 
-  /// Set from WorkoutState — when true, uses stricter rep-counter thresholds
-  /// to avoid counting tiny torso wiggles as reps on iPad.
+  /// Set from WorkoutState. Currently carried for symmetry with the rest of
+  /// the pipeline; the rep-counter thresholds are the same on phone and iPad.
   bool isTablet = false;
 
   ExercisePhase phase = ExercisePhase.idle;
@@ -63,23 +63,21 @@ class PushUpAnalyzer {
   // Lowest point tracking during DOWN phase
   double? _bottomValue;
 
-  // Thresholds scale with torso length so sensitivity adapts to camera distance.
-  // iPad uses stricter thresholds because its lenient form classifier would
-  // otherwise let tiny torso movements through as reps.
-  double get _downThreshold {
-    final torso = _torsoLength ?? 0.15;
-    return torso * (isTablet ? 0.28 : 0.15); // 28% of torso on iPad, 15% elsewhere
-  }
-  double get _upThreshold {
-    final torso = _torsoLength ?? 0.15;
-    return torso * (isTablet ? 0.20 : 0.10); // 20% of torso on iPad, 10% elsewhere
-  }
+  // Thresholds scale with torso length so sensitivity adapts to camera distance
+  double get _downThreshold => (_torsoLength ?? 0.15) * 0.15; // 15% of torso
+  double get _upThreshold   => (_torsoLength ?? 0.15) * 0.10; // 10% of torso
 
   static double get _minVis => Platform.isIOS ? 0.35 : 0.4;
 
   // Consecutive frames with no form classification (null) — go idle if too many
   int _nullFormFrames = 0;
   static const int _maxNullFormFrames = 12;
+
+  // Consecutive exercise frames needed in IDLE before we actually activate.
+  // Prevents single-frame classifier blips (common on iPad where the form
+  // classifier has more noise) from kicking off a fake rep cycle.
+  int _idleExerciseStreak = 0;
+  static const int _idleActivationFrames = 4;
 
   // ── Upside-down detection ────────────────────────────────────────────────────
   int _upsideDownFrames = 0;
@@ -171,11 +169,16 @@ class PushUpAnalyzer {
     switch (phase) {
       case ExercisePhase.idle:
         if (isExercise) {
-          phase = ExercisePhase.up;
-          _topValue = signal;
-          _upFrameCount = 0;
-          _goodFormFrames = 0;
-          _badFormFrames  = 0;
+          _idleExerciseStreak++;
+          if (_idleExerciseStreak >= _idleActivationFrames) {
+            phase = ExercisePhase.up;
+            _topValue = signal;
+            _upFrameCount = 0;
+            _goodFormFrames = 0;
+            _badFormFrames  = 0;
+          }
+        } else {
+          _idleExerciseStreak = 0;
         }
 
       case ExercisePhase.up:
@@ -257,6 +260,7 @@ class PushUpAnalyzer {
     _goodFormFrames = 0;
     _badFormFrames  = 0;
     _nullFormFrames = 0;
+    _idleExerciseStreak = 0;
   }
 
   void _finishRep(double currentSignal) {
@@ -383,5 +387,6 @@ class PushUpAnalyzer {
     latestMetrics   = PoseMetrics();
     _upsideDownFrames = 0;
     _nullFormFrames = 0;
+    _idleExerciseStreak = 0;
   }
 }
