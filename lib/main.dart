@@ -145,9 +145,14 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     final navBg = isDark ? const Color(0xFF0F172A) : Colors.white;
     final navUnselected = isDark ? Colors.white54 : const Color(0xFF64748B);
-    final navTopBorder = isDark ? null : const Color(0xFFE2E8F0);
+    // Show a subtle top border only on phones in light mode. On iPad we drop
+    // the border (and the default Material elevation shadow below) so the bar
+    // blends into the page.
+    final navTopBorder =
+        (isDark || isTablet) ? null : const Color(0xFFE2E8F0);
 
     return Scaffold(
       body: IndexedStack(
@@ -174,6 +179,7 @@ class _MainShellState extends State<MainShell> {
               onTap: _onTap,
               type: BottomNavigationBarType.fixed,
               backgroundColor: navBg,
+              elevation: isTablet ? 0 : 8,
               selectedItemColor: const Color(0xFF2563EB),
               unselectedItemColor: navUnselected,
               selectedFontSize: 12,
