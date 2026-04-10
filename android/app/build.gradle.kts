@@ -32,7 +32,12 @@ android {
         applicationId = "com.repcounter.rep_counter"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
+        // Android-only version override.
+        // pubspec.yaml stays at the iOS version (Codemagic publishes iOS) so
+        // we don't burn an iOS build number when only the Android .aab needs
+        // updating. Bump `androidVersionCode` here whenever we ship a new
+        // Android build.
+        versionCode = 45
         versionName = flutter.versionName
     }
 

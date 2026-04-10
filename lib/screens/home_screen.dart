@@ -867,12 +867,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '✎ tap to edit',
-                      style: TextStyle(fontSize: 11, color: Colors.white38),
-                      textAlign: TextAlign.right,
-                    ),
+                    // iOS keeps the "tap to edit" hint; on Android we drop it
+                    // for a sleeker look (the row is still tappable).
+                    if (!Platform.isAndroid) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '✎ tap to edit',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: theme.textTheme.bodyMedium?.color
+                                ?.withValues(alpha: 0.5)),
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -929,12 +936,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '✎ tap to edit',
-                      style: TextStyle(fontSize: 11, color: Colors.white38),
-                      textAlign: TextAlign.right,
-                    ),
+                    // iOS keeps the "tap to edit" hint; on Android we drop it
+                    // for a sleeker look (the row is still tappable).
+                    if (!Platform.isAndroid) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '✎ tap to edit',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: theme.textTheme.bodyMedium?.color
+                                ?.withValues(alpha: 0.5)),
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -954,7 +968,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 4),
               Text(
                 'Resets ${_weekDayNames[_weekStartDay - 1]}',
-                style: const TextStyle(fontSize: 11, color: Colors.white38),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: theme.textTheme.bodyMedium?.color
+                        ?.withValues(alpha: 0.5)),
               ),
             ],
 
@@ -996,6 +1013,11 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(ctx, v.clamp(1, 99999));
         }
 
+        final sheetTheme = Theme.of(ctx);
+        final handleColor = sheetTheme.brightness == Brightness.dark
+            ? Colors.white24
+            : const Color(0xFFCBD5E1);
+
         return SafeArea(
           bottom: true,
           child: SingleChildScrollView(
@@ -1011,7 +1033,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       width: 36, height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: handleColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
