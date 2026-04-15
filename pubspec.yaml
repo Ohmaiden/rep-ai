@@ -1,7 +1,7 @@
 name: rep_counter
 description: Rep AI - AI-powered rep counter with form validation using on-device pose detection.
 publish_to: 'none'
-version: 2.1.0+48
+version: 2.1.0+49
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
