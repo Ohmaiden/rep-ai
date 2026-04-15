@@ -5,6 +5,14 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [Unreleased] — 2026-04-15 (patch 2)
+
+### Fixed
+- Build number bumped to +50 (was +49, same as last App Store upload — caused duplicate CFBundleVersion rejection on Codemagic)
+- Pre-push git hook installed at .git/hooks/pre-push — automatically increments build number in pubspec.yaml and commits before every push, so Codemagic always receives a higher build number
+
+---
+
 ## [Unreleased] — 2026-04-15
 
 ### Added

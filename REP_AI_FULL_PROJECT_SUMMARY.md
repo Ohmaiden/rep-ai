@@ -292,7 +292,7 @@ Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code a
 - `lib/services/audio_service.dart` — Sound effects playback
 
 ### Config
-- `pubspec.yaml` — Dependencies, version (currently 2.0.1+32)
+- `pubspec.yaml` — Dependencies, version (currently 2.1.0+50). Build number auto-incremented by pre-push git hook — never touch this manually
 - `android/app/build.gradle.kts` — Android build config
 - `android/key.properties` — Keystore config (DO NOT commit to public repo)
 
