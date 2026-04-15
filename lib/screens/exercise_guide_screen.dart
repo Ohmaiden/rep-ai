@@ -86,7 +86,7 @@ class ExerciseGuideScreen extends StatelessWidget {
                     SizedBox(height: 12),
                     _NoteBox(
                       text:
-                          'Rep AI can track all push-up variations. Accuracy may vary between variations — standard push-ups give the most reliable tracking.',
+                          'Rep AI can track all push-up variations. Accuracy may vary between them. Standard push-ups give the most reliable tracking.',
                     ),
                   ],
                 ),

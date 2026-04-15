@@ -14,10 +14,14 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class HistoryScreenState extends State<HistoryScreen> {
+  /// Public entry point so the parent shell can trigger a fresh load whenever
+  /// the History tab is selected. Keeps the screen in lock-step with the DB.
+  Future<void> refresh() => _loadData();
+
   List<WorkoutSession> _allSessions = [];
   List<Map<String, dynamic>> _monthlyTotals = [];
   bool _loading = true;
@@ -634,7 +638,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildSessionCard(WorkoutSession session) {
     final theme = Theme.of(context);
-    final dateStr = DateFormat('EEE, MMM d - h:mm a').format(session.startedAt);
+    final dateStr = _friendlyDate(session.startedAt);
     final formColor = session.formScore >= 80
         ? const Color(0xFF16A34A)
         : session.formScore >= 50
@@ -818,13 +822,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Icon(Icons.history, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'No workout history yet',
+            'No workouts yet',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Complete a workout to see your progress',
-            style: Theme.of(context).textTheme.bodyMedium,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Your workouts will appear here after your first session.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
         ],
       ),
@@ -848,6 +856,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final secs = d.inSeconds % 60;
     if (mins > 0) return '${mins}m ${secs}s';
     return '${secs}s';
+  }
+
+  /// Human-readable session date: "Today", "Yesterday", or e.g. "Monday 14 Apr".
+  /// Always includes the time so the list stays useful when multiple sessions
+  /// happen on the same day.
+  String _friendlyDate(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final that = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(that).inDays;
+    final time = DateFormat('h:mm a').format(dt);
+    if (diff == 0) return 'Today at $time';
+    if (diff == 1) return 'Yesterday at $time';
+    return '${DateFormat('EEEE d MMM').format(dt)} at $time';
   }
 
   Future<void> _confirmClearAll(BuildContext context) async {

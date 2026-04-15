@@ -18,8 +18,10 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _goalsEnabled = true;
   int _weekStartDay = 1; // 1=Mon … 7=Sun (matches DateTime.weekday)
+  Set<int> _activeDays = {1, 2, 3, 4, 5, 6, 7};
 
   static const _dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  static const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   void initState() {
@@ -29,9 +31,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    final daysCsv =
+        prefs.getString('active_workout_days') ?? '1,2,3,4,5,6,7';
+    final parsed = daysCsv
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .where((d) => d >= 1 && d <= 7)
+        .toSet();
     setState(() {
       _goalsEnabled = prefs.getBool('goals_enabled') ?? true;
       _weekStartDay = prefs.getInt('week_start_day') ?? 1;
+      _activeDays = parsed.isEmpty ? {1, 2, 3, 4, 5, 6, 7} : parsed;
     });
   }
 
@@ -45,6 +56,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('week_start_day', value);
     setState(() => _weekStartDay = value);
+  }
+
+  Future<void> _toggleActiveDay(int day) async {
+    final next = {..._activeDays};
+    if (next.contains(day)) {
+      if (next.length <= 1) return;
+      next.remove(day);
+    } else {
+      next.add(day);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final csv = (next.toList()..sort()).join(',');
+    await prefs.setString('active_workout_days', csv);
+    setState(() => _activeDays = next);
   }
 
   @override
@@ -72,37 +97,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
             activeTrackColor: const Color(0xFF2563EB).withValues(alpha: 0.4),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          const SizedBox(height: 16),
-          ListTile(
-            title: const Text('Week starts on'),
-            subtitle: Text(_dayNames[_weekStartDay - 1]),
-            trailing: DropdownButton<int>(
-              value: _weekStartDay,
-              underline: const SizedBox.shrink(),
-              onChanged: (v) { if (v != null) _setWeekStartDay(v); },
-              items: List.generate(7, (i) => DropdownMenuItem(
-                value: i + 1,
-                child: Text(_dayNames[i]),
-              )),
+          if (_goalsEnabled) ...[
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Weekly goal resets on'),
+              subtitle: Text(
+                  'Your week starts on ${_dayNames[_weekStartDay - 1]}.'),
+              trailing: DropdownButton<int>(
+                value: _weekStartDay,
+                underline: const SizedBox.shrink(),
+                onChanged: (v) { if (v != null) _setWeekStartDay(v); },
+                items: List.generate(7, (i) => DropdownMenuItem(
+                  value: i + 1,
+                  child: Text(_dayNames[i]),
+                )),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Active training days',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Weekly total = daily goal × number of active days',
+                    style: TextStyle(
+                        fontSize: 13, color: theme.hintColor),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (var i = 1; i <= 7; i++)
+                        FilterChip(
+                          selected: _activeDays.contains(i),
+                          label: Text(_dayShort[i - 1]),
+                          onSelected: (_) => _toggleActiveDay(i),
+                          showCheckmark: false,
+                          selectedColor: const Color(0xFF2563EB)
+                              .withValues(alpha: 0.2),
+                          labelStyle: TextStyle(
+                            fontWeight: _activeDays.contains(i)
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: _activeDays.contains(i)
+                                ? const Color(0xFF2563EB)
+                                : null,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: _activeDays.contains(i)
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFF2563EB)
+                                      .withValues(alpha: 0.25),
+                              width: _activeDays.contains(i) ? 2 : 1,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
 
           // ── Theme ─────────────────────────────────────────────────────
           Text('Theme', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Choose how the app looks. Light, dark, or match your phone.',
+            style: TextStyle(fontSize: 13, color: theme.hintColor),
+          ),
           const SizedBox(height: 12),
           _themeTile(context, themeProvider, 'System Default',
-              ThemeMode.system, Icons.brightness_auto),
+              ThemeMode.system, Icons.brightness_auto,
+              subtitle: 'Match your phone setting'),
           _themeTile(context, themeProvider, 'Light', ThemeMode.light,
-              Icons.light_mode),
+              Icons.light_mode,
+              subtitle: 'Bright background, easy to read in daylight'),
           _themeTile(context, themeProvider, 'Dark', ThemeMode.dark,
-              Icons.dark_mode),
+              Icons.dark_mode,
+              subtitle: 'Dark background, easier on the eyes at night'),
 
           const SizedBox(height: 24),
 
           // ── FAQ ───────────────────────────────────────────────────────
           Text('FAQ', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Tap a question to see the answer.',
+            style: TextStyle(fontSize: 13, color: theme.hintColor),
+          ),
           const SizedBox(height: 8),
           ..._faq.map((qa) => _faqTile(qa.$1, qa.$2)),
         ],
@@ -116,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const List<(String, String)> _faq = [
     (
       'How fast should I do reps?',
-      'Perform controlled reps at a steady pace. Very fast reps may not always be detected — think of it as encouragement to focus on quality over speed.',
+      'Perform controlled reps at a steady pace. Very fast reps may not always be detected. Think of it as encouragement to focus on quality over speed.',
     ),
     (
       'Why wasn\'t my rep counted?',
@@ -132,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ),
     (
       'Can I use it without looking at the screen?',
-      'Yes — you\'ll hear a ding sound for each good rep and feel a vibration so you don\'t need to watch the screen.',
+      'Yes. You\'ll hear a ding for each good rep and feel a vibration so you don\'t need to watch the screen.',
     ),
   ];
 
@@ -161,7 +255,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _themeTile(BuildContext context, ThemeProvider themeProvider,
-      String label, ThemeMode mode, IconData icon) {
+      String label, ThemeMode mode, IconData icon,
+      {String? subtitle}) {
     final selected = themeProvider.mode == mode;
     return ListTile(
       leading: Icon(icon,
@@ -170,6 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(
               fontWeight:
                   selected ? FontWeight.w700 : FontWeight.w400)),
+      subtitle: subtitle == null ? null : Text(subtitle),
       trailing: selected
           ? const Icon(Icons.check_circle, color: Color(0xFF2563EB))
           : null,

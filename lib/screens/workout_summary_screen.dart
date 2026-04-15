@@ -244,6 +244,31 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                           ],
                           const SizedBox(height: 28),
 
+                          // Headline — total counted reps (biggest number on
+                          // the page so it's unmistakable what was achieved).
+                          Center(
+                            child: Text(
+                              '${session.goodFormReps}',
+                              style: const TextStyle(
+                                fontSize: 72,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF16A34A),
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Center(
+                            child: Text(
+                              session.goodFormReps == 1
+                                  ? 'Push-up counted'
+                                  : 'Push-ups counted',
+                              style: TextStyle(
+                                  fontSize: 14, color: subtextColor),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
                           // Stats row
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -432,7 +457,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                         child: ElevatedButton(
                           onPressed: () =>
                               Navigator.popUntil(context, (r) => r.isFirst),
-                          child: const Text('Done',
+                          child: const Text('Back to Home',
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w700)),
                         ),

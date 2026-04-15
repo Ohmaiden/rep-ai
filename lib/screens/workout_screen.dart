@@ -784,7 +784,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                         BorderRadius.circular(20),
                                   ),
                                   child: const Text(
-                                    'Fix form \u2014 rep not counted',
+                                    'Fix your form. Rep not counted.',
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 13,

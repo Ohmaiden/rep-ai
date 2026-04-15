@@ -122,6 +122,15 @@ class _MainShellState extends State<MainShell> {
   // 0=Home, 2=History, 3=Settings  (1=Workout is full-screen, no persistent state)
   int _selectedIndex = 0;
 
+  // Allows re-triggering a fresh DB load every time the History tab is opened
+  // (the screen is kept alive inside the IndexedStack, so initState only fires
+  // once — without this the list can look stale until the user pulls to refresh).
+  final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
+
+  // Same pattern for Home — reloading ensures the live weekly-goal calc
+  // (daily × active days) re-reads prefs whenever the user returns to Home.
+  final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
+
   // Maps nav bar tab index → IndexedStack index
   // Tab 0=Home → stack 0, Tab 2=History → stack 1, Tab 3=Settings → stack 2
   int get _stackIndex {
@@ -138,6 +147,13 @@ class _MainShellState extends State<MainShell> {
       return;
     }
     final tabIndex = navIndex > 1 ? navIndex : navIndex; // 0, 2, 3
+    if (tabIndex == 2) {
+      // Always reload history when the user opens that tab.
+      _historyKey.currentState?.refresh();
+    } else if (tabIndex == 0) {
+      // Re-read prefs so the weekly goal reflects any Settings edits.
+      _homeKey.currentState?.refresh();
+    }
     setState(() => _selectedIndex = tabIndex);
   }
 
@@ -156,10 +172,10 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: IndexedStack(
         index: _stackIndex,
-        children: const [
-          HomeScreen(),
-          HistoryScreen(),
-          SettingsScreen(),
+        children: [
+          HomeScreen(key: _homeKey),
+          HistoryScreen(key: _historyKey),
+          const SettingsScreen(),
         ],
       ),
       bottomNavigationBar: Container(

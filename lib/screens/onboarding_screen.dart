@@ -19,15 +19,46 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
-  static const int _totalPages = 6;
+  static const int _totalPages = 9;
+
+  // Goals page inputs — optional; zero means "skip / no goal set".
+  int _dailyGoal = 20;
+
+  // Fitness level — null means user skipped without selecting.
+  String? _fitnessLevel;
+
+  // Active workout days — 1=Mon … 7=Sun. Defaults to all 7 selected.
+  final Set<int> _activeDays = {1, 2, 3, 4, 5, 6, 7};
 
   late _Palette _p;
+
+  int get _weeklyGoal => _dailyGoal * _activeDays.length;
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
   Future<void> _finish() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_done', true);
+    // Persist fitness level only when the user actually selected one.
+    if (_fitnessLevel != null) {
+      await prefs.setString('fitness_level', _fitnessLevel!);
+    }
+    // Persist active workout days — always write, even if unchanged from
+    // default, so downstream readers can rely on the key existing.
+    final daysCsv = (_activeDays.toList()..sort()).join(',');
+    await prefs.setString('active_workout_days', daysCsv);
+    // Persist goals only when the user actually set something — a value of 0
+    // (or lower) means they skipped, and we must leave any existing goal alone.
+    if (_weeklyGoal > 0) {
+      await prefs.setInt('onboarding_goal_reps', _weeklyGoal);
+      // Derive the days/week value the home screen uses to fall back to a
+      // daily target if no explicit custom_daily_target is saved.
+      final derivedDays = _activeDays.isNotEmpty ? _activeDays.length : 7;
+      await prefs.setInt('onboarding_goal_days', derivedDays);
+    }
+    if (_dailyGoal > 0) {
+      await prefs.setInt('custom_daily_target', _dailyGoal);
+    }
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
@@ -95,6 +126,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _buildWhatYouCanDoPage(),
                   _buildPushUpsPage(),
                   _buildTipsPage(),
+                  _buildFitnessLevelPage(),
+                  _buildActiveDaysPage(),
+                  _buildGoalsPage(),
                   _buildReadyPage(),
                 ],
               ),
@@ -393,7 +427,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       icon: Icons.fitness_center,
       title: 'Welcome to Rep AI',
       subtitle:
-          'Your AI-powered rep counter. Only perfect-form reps count — every rep matters.',
+          'This app counts your push-ups using your phone camera. Swipe right to learn how.',
     );
   }
 
@@ -402,12 +436,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildHowItWorksPage() {
     return _buildInfoPage(
       icon: Icons.phone_android,
-      title: 'How it works',
+      title: 'Set up your phone',
+      subtitle:
+          'Place your phone so the camera can see all of you. Then press start.',
       bullets: [
-        'Prop your phone up so your full body is visible',
-        'Side view works best, 1–2 metres away',
-        'Phone at roughly chest height for best detection',
-        'Press Start and begin your workout',
+        'Stand your phone up on the floor or a low surface.',
+        'Place it 1 to 2 metres to your side.',
+        'Point the camera at chest height.',
+        'Check your whole body fits in the preview.',
       ],
     );
   }
@@ -418,11 +454,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return _buildInfoPage(
       icon: Icons.dashboard_rounded,
       title: 'What you can do',
+      subtitle: 'Pick any of these from the home screen.',
       bullets: [
-        'Quick workouts or custom sets, reps and rest timers',
-        'Track streaks, set daily and weekly goals',
-        'Earn badges and beat personal records',
-        'Full workout history with form scores',
+        'Start a quick workout with no limit.',
+        'Build custom sets with reps and rest times.',
+        'Track streaks and daily goals.',
+        'See past workouts in the history tab.',
       ],
     );
   }
@@ -432,9 +469,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildPushUpsPage() {
     return _buildInfoPage(
       icon: Icons.sports_gymnastics,
-      title: 'Push-ups supported',
+      title: 'What gets counted',
       subtitle:
-          'Standard, wide, diamond, pike and more. Accuracy works best with standard push-ups. More exercises coming soon.',
+          'Each full push-up counts as one rep. Standard, wide, diamond and pike all work. Only clean reps are counted.',
     );
   }
 
@@ -443,24 +480,432 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildTipsPage() {
     return _buildInfoPage(
       icon: Icons.lightbulb_outline_rounded,
-      title: 'Tips for best results',
+      title: 'Tips',
+      subtitle: 'Follow these for the most accurate count.',
       bullets: [
-        'Controlled, steady pace — the AI needs to see each rep clearly',
-        'Good lighting helps accuracy significantly',
-        'Make sure your full body stays in frame',
-        "You'll hear a ding for each good rep counted",
+        'Move at a steady pace so each rep is clear.',
+        'Use a well lit room.',
+        'Keep your whole body in the camera view.',
+        'Listen for the ding on each counted rep.',
       ],
     );
   }
 
-  // ── Page 6: You're ready! ─────────────────────────────────────────────────
+  // ── Page 6: Goals ─────────────────────────────────────────────────────────
+
+  Widget _buildGoalsPage() {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _iconCircle(Icons.flag_rounded, size: 88, iconSize: 42),
+                const SizedBox(height: 24),
+                Text(
+                  'Your daily goal',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: _p.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Pick how many push-ups you want to do each training day. Set it to zero to skip.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 15, color: _p.tertiary, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap the plus and minus buttons to change the number.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: _p.muted, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                _goalStepper(
+                  label: 'Daily goal',
+                  suffix: 'push-ups a day',
+                  value: _dailyGoal,
+                  step: 5,
+                  onChanged: (v) => setState(() => _dailyGoal = v),
+                ),
+                const SizedBox(height: 12),
+                _weeklyTotalCard(),
+                const SizedBox(height: 20),
+                Text(
+                  'You can change this later in the settings tab.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: _p.muted, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _goalStepper({
+    required String label,
+    required String suffix,
+    required int value,
+    required int step,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: const Color(0xFF2563EB).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _p.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$value $suffix',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _p.tertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: value <= 0
+                ? null
+                : () => onChanged((value - step).clamp(0, 9999)),
+            icon: const Icon(Icons.remove_circle_outline_rounded),
+            color: const Color(0xFF2563EB),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _p.primary,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => onChanged(value + step),
+            icon: const Icon(Icons.add_circle_outline_rounded),
+            color: const Color(0xFF2563EB),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _weeklyTotalCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: const Color(0xFF2563EB).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Weekly total',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _p.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$_dailyGoal push-ups across ${_activeDays.length} days',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _p.tertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$_weeklyGoal',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: _p.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Fitness level page ────────────────────────────────────────────────────
+
+  Widget _buildFitnessLevelPage() {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _iconCircle(Icons.trending_up_rounded, size: 88, iconSize: 42),
+                const SizedBox(height: 24),
+                Text(
+                  'Your fitness level',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: _p.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'This sets your starting daily goal. You can change it on the next page.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 15, color: _p.tertiary, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap a level.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: _p.muted, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                _fitnessLevelTile(
+                  value: 'beginner',
+                  title: 'Beginner',
+                  subtitle: '20 push-ups a day',
+                  icon: Icons.looks_one_rounded,
+                ),
+                const SizedBox(height: 10),
+                _fitnessLevelTile(
+                  value: 'intermediate',
+                  title: 'Intermediate',
+                  subtitle: '50 push-ups a day',
+                  icon: Icons.looks_two_rounded,
+                ),
+                const SizedBox(height: 10),
+                _fitnessLevelTile(
+                  value: 'advanced',
+                  title: 'Advanced',
+                  subtitle: '100 push-ups a day',
+                  icon: Icons.looks_3_rounded,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fitnessLevelTile({
+    required String value,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final selected = _fitnessLevel == value;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _fitnessLevel = value;
+          switch (value) {
+            case 'beginner':
+              _dailyGoal = 20;
+              break;
+            case 'intermediate':
+              _dailyGoal = 50;
+              break;
+            case 'advanced':
+              _dailyGoal = 100;
+              break;
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF2563EB).withValues(alpha: 0.15)
+              : const Color(0xFF2563EB).withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF2563EB)
+                : const Color(0xFF2563EB).withValues(alpha: 0.2),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF2563EB), size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _p.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                        fontSize: 13, color: _p.tertiary),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_circle,
+                  color: Color(0xFF2563EB), size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Active workout days page ──────────────────────────────────────────────
+
+  Widget _buildActiveDaysPage() {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _iconCircle(Icons.calendar_month_rounded,
+                    size: 88, iconSize: 42),
+                const SizedBox(height: 24),
+                Text(
+                  'Your training days',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: _p.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Pick the days you plan to work out. This sets your weekly goal.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 15, color: _p.tertiary, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap a day to turn it on or off.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: _p.muted, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (var i = 1; i <= 7; i++)
+                      _dayChip(i, _activeDays.contains(i), (sel) {
+                        setState(() {
+                          if (sel) {
+                            _activeDays.add(i);
+                          } else if (_activeDays.length > 1) {
+                            _activeDays.remove(i);
+                          }
+                        });
+                      }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dayChip(int day, bool selected, ValueChanged<bool> onToggle) {
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return FilterChip(
+      selected: selected,
+      label: Text(labels[day - 1]),
+      onSelected: onToggle,
+      showCheckmark: false,
+      selectedColor: const Color(0xFF2563EB).withValues(alpha: 0.2),
+      backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.05),
+      labelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        color: selected ? const Color(0xFF2563EB) : _p.tertiary,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: selected
+              ? const Color(0xFF2563EB)
+              : const Color(0xFF2563EB).withValues(alpha: 0.25),
+          width: selected ? 2 : 1,
+        ),
+      ),
+    );
+  }
+
+  // ── Page 7: You're ready! ─────────────────────────────────────────────────
 
   Widget _buildReadyPage() {
     return _buildInfoPage(
       icon: Icons.check_circle_outline_rounded,
-      title: "You're ready!",
+      title: "You're all set",
       subtitle:
-          "Start your first workout and see what you're capable of.",
+          'Tap the question mark button on the home screen any time to come back to this guide.',
       trailing: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
@@ -473,7 +918,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 borderRadius: BorderRadius.circular(16)),
           ),
           child: const Text(
-            'Get Started',
+            "Let's go!",
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
         ),

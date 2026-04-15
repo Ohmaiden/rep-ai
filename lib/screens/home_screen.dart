@@ -22,10 +22,15 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
+  /// Public entry point so the parent shell can trigger a fresh load whenever
+  /// the Home tab is selected — ensures the live weekly-goal calculation
+  /// re-reads the latest active_workout_days / custom_daily_target prefs.
+  Future<void> refresh() => _loadData();
+
   List<WorkoutSession> _recentSessions = [];
   Map<String, dynamic> _stats = {};
   int _streak = 0;
@@ -114,23 +119,37 @@ class _HomeScreenState extends State<HomeScreen> {
     final badges = await db.getEarnedBadges();
     final badgeDates = await db.getEarnedBadgeDates();
 
-    // Load targets — custom_ keys always win; fall back to onboarding values
+    // Load targets — weekly is always derived live from daily × active days so
+    // changing either Settings value immediately reflects on the home screen.
     final prefs = await SharedPreferences.getInstance();
     final goalsEnabled = prefs.getBool('goals_enabled') ?? true;
     final weekStartDay = prefs.getInt('week_start_day') ?? 1;
     final onboardingReps = prefs.getInt('onboarding_goal_reps') ?? 0;
     final onboardingDays = prefs.getInt('onboarding_goal_days') ?? 0;
-    final customWeekly = prefs.getInt('custom_weekly_target');
     final customDaily = prefs.getInt('custom_daily_target');
 
-    // Weekly goal: custom_weekly_target → onboarding_goal_reps → 0
-    final effectiveWeeklyReps = customWeekly ?? (onboardingReps > 0 ? onboardingReps : 0);
-
-    // Daily target: custom_daily_target → derived from weekly/days → 0 (no carry-over)
+    // Daily goal: custom_daily_target → onboarding-derived → default 20.
+    final onboardingDailyDerived =
+        (onboardingReps > 0 && onboardingDays > 0)
+            ? (onboardingReps / onboardingDays).ceil()
+            : 0;
     final baseDailyTarget = customDaily ??
-        ((effectiveWeeklyReps > 0 && onboardingDays > 0)
-            ? (effectiveWeeklyReps / onboardingDays).ceil()
-            : 0);
+        (onboardingDailyDerived > 0 ? onboardingDailyDerived : 20);
+
+    // Active days count (default 7 if pref missing or malformed).
+    final activeDaysCsv =
+        prefs.getString('active_workout_days') ?? '1,2,3,4,5,6,7';
+    final parsedDays = activeDaysCsv
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .where((d) => d >= 1 && d <= 7)
+        .toSet();
+    final activeDaysCount =
+        parsedDays.isEmpty ? 7 : (parsedDays.length > 7 ? 7 : parsedDays.length);
+
+    // Weekly goal is always daily × active days — live, never stale.
+    final effectiveWeeklyReps = baseDailyTarget * activeDaysCount;
 
     // Reset streak if last workout was before yesterday
     await db.checkAndResetStaleStreak();
@@ -905,7 +924,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             hasDaily
                                 ? '$_todayRepsCompleted / $_adjustedDailyTarget reps'
-                                : '$_todayRepsCompleted reps — tap to set target',
+                                : '$_todayRepsCompleted reps. Tap to set target.',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.right,
@@ -970,7 +989,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             hasWeekly
                                 ? '$_weekRepsCompleted / $_weeklyGoalReps reps'
-                                : '$_weekRepsCompleted reps — tap to set target',
+                                : '$_weekRepsCompleted reps. Tap to set target.',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.right,
@@ -1134,10 +1153,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result != null && mounted) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('custom_daily_target', result);
-      // Recompute from saved value
-      setState(() {
-        _adjustedDailyTarget = result;
-      });
+      // Full reload so weekly goal (daily × active days) updates with it.
+      await _loadData();
     }
   }
 
@@ -1153,15 +1170,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result != null && mounted) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('custom_weekly_target', result);
-      // Only derive a new daily target if the user hasn't set one explicitly.
-      // If custom_daily_target exists, leave it untouched — it's their override.
-      final hasCustomDaily = prefs.containsKey('custom_daily_target');
-      if (!hasCustomDaily) {
-        final days = prefs.getInt('onboarding_goal_days') ?? 7;
-        final newDaily = (result / days).ceil();
-        await prefs.setInt('custom_daily_target', newDaily);
-      }
+      // Weekly is always daily × active days, so editing the weekly goal
+      // translates to a new daily target (rounded up, divided by active days).
+      final daysCsv =
+          prefs.getString('active_workout_days') ?? '1,2,3,4,5,6,7';
+      final parsed = daysCsv
+          .split(',')
+          .map((s) => int.tryParse(s.trim()))
+          .whereType<int>()
+          .where((d) => d >= 1 && d <= 7)
+          .toSet();
+      final activeDays =
+          parsed.isEmpty ? 7 : (parsed.length > 7 ? 7 : parsed.length);
+      final newDaily = (result / activeDays).ceil();
+      await prefs.setInt('custom_daily_target', newDaily);
       await _loadData();
     }
   }
