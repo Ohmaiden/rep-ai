@@ -8,20 +8,31 @@ Keep this file updated with every future change. Add new entries at the top.
 ## [Unreleased] — 2026-04-15
 
 ### Added
-- Improved onboarding flow: 6 clean informational screens replacing the fitness-level/goal-setter flow
-  - Screen 1: Welcome to Rep AI
-  - Screen 2: How it works (phone placement, distance, side view)
-  - Screen 3: What you can do (quick/custom workouts, streaks, goals, badges, history)
-  - Screen 4: Push-ups supported (standard, wide, diamond, pike; more coming)
-  - Screen 5: Tips for best results (pace, lighting, framing, ding feedback)
-  - Screen 6: You're ready! — "Get Started" button navigates to home
-  - All screens: swipeable, dot indicators, Skip button, portrait + landscape aware
+- Onboarding expanded to 9 pages with three new goal and personalisation screens:
+  - Fitness level picker (Beginner 20/day, Intermediate 50/day, Advanced 100/day) — pre-fills daily goal, persisted as `fitness_level`
+  - Active training days — 7-day chip toggles, all on by default, minimum 1 day always required, persisted as `active_workout_days`
+  - Daily goal page — stepper for push-ups per day with computed weekly total shown automatically (daily x active days); weekly total is no longer a separate input
+  - Final page explicitly tells users the question mark button returns them to this guide at any time
+- Workout history auto-refreshes every time the History tab is opened (GlobalKey + refresh() on tab focus via IndexedStack), on top of the existing WorkoutState end-session listener
+- Active training days section in Settings — same 7-chip toggle so users can update their training schedule after onboarding
 - Select button in workout history AppBar — tap to enter multi-select mode without long-pressing
-- Delete Selected bottom bar in history: full-width red button showing count, disabled until at least one workout is selected
-- Auto-refresh history screen after a workout ends — WorkoutState listener added to history_screen.dart so history, calendar, and monthly totals update without pull-to-refresh
+- Delete Selected bottom bar in history — full-width red button showing count, disabled until at least one workout is selected
 
 ### Changed
-- History AppBar in select mode now shows only a close (✕) button; delete action moved to bottom bar
+- Weekly goal on home screen now derived live as `daily_goal x active_days_count` — changing days or daily goal in Settings updates the home screen immediately when the tab is focused
+- Editing the weekly goal on the home screen now writes back a new daily target (weekly / active_days) instead of a separate weekly override, keeping one source of truth
+- "Week starts on" setting relabelled to "Weekly goal resets on"
+- History screen dates are now human-readable: "Today at 3:05 PM", "Yesterday at 9:10 AM", "Monday 14 Apr at 6:20 PM"
+- History empty state updated to plain friendly message
+- Workout summary "Done" button relabelled "Back to Home"
+- Settings: each setting now has a one-line plain-English subtitle
+- All em dashes and sentence-break dashes replaced with full stops across all user-visible text
+- Onboarding copy rewritten throughout — short titles, plain English, no jargon, no filler, sentence case only
+- Removed inline workout labels ("Camera is tracking your form", "Push-ups counted") — onboarding covers this
+- Removed motivational lines from workout summary screen
+
+### Fixed
+- History AppBar in select mode now shows only a close button; delete action moved to bottom bar
 - History AppBar when not in select mode shows "Select" text button alongside the clear-all icon
 
 ### Previously added (since v2.0.0)
