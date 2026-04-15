@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/database_service.dart';
+import '../services/workout_state.dart';
 import '../models/workout_models.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -28,10 +29,40 @@ class _HistoryScreenState extends State<HistoryScreen> {
   bool _selectMode = false;
   final Set<String> _selectedIds = {};
 
+  // Auto-refresh when a workout ends
+  bool _wasWorkoutActive = false;
+  WorkoutState? _workoutState;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newState = context.read<WorkoutState>();
+    if (!identical(_workoutState, newState)) {
+      _workoutState?.removeListener(_onWorkoutStateChanged);
+      _workoutState = newState;
+      _wasWorkoutActive = newState.isActive;
+      newState.addListener(_onWorkoutStateChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _workoutState?.removeListener(_onWorkoutStateChanged);
+    super.dispose();
+  }
+
+  void _onWorkoutStateChanged() {
+    final isActive = _workoutState?.isActive ?? false;
+    if (_wasWorkoutActive && !isActive) {
+      _loadData();
+    }
+    _wasWorkoutActive = isActive;
   }
 
   Future<void> _loadData() async {
@@ -52,6 +83,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() {
       _selectMode = true;
       _selectedIds.add(id);
+    });
+  }
+
+  void _enterSelectModeEmpty() {
+    setState(() {
+      _selectMode = true;
     });
   }
 
@@ -112,6 +149,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (!didPop && _selectMode) _exitSelectMode();
       },
       child: Scaffold(
+        bottomNavigationBar: _selectMode ? _buildDeleteBar() : null,
         appBar: AppBar(
           title: _selectMode
               ? Text('${_selectedIds.length} selected')
@@ -119,19 +157,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
           actions: [
             if (_selectMode) ...[
               IconButton(
-                icon: const Icon(Icons.delete_rounded, color: Colors.red),
-                onPressed: _deleteSelected,
-                tooltip: 'Delete selected',
-              ),
-              IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: _exitSelectMode,
               ),
-            ] else if (_allSessions.isNotEmpty)
+            ] else if (_allSessions.isNotEmpty) ...[
+              TextButton(
+                onPressed: _enterSelectModeEmpty,
+                child: const Text('Select'),
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _confirmClearAll(context),
               ),
+            ],
           ],
         ),
         body: SafeArea(
@@ -737,6 +775,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteBar() {
+    final count = _selectedIds.length;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: ElevatedButton.icon(
+          onPressed: count == 0 ? null : _deleteSelected,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            disabledBackgroundColor: Colors.red.withValues(alpha: 0.4),
+            minimumSize: const Size(double.infinity, 52),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
+          icon: const Icon(Icons.delete_rounded, color: Colors.white),
+          label: Text(
+            count == 0
+                ? 'Select workouts to delete'
+                : 'Delete Selected ($count)',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700),
           ),
         ),
       ),

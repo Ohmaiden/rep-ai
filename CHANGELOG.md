@@ -5,6 +5,38 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [Unreleased] — 2026-04-15
+
+### Added
+- Improved onboarding flow: 6 clean informational screens replacing the fitness-level/goal-setter flow
+  - Screen 1: Welcome to Rep AI
+  - Screen 2: How it works (phone placement, distance, side view)
+  - Screen 3: What you can do (quick/custom workouts, streaks, goals, badges, history)
+  - Screen 4: Push-ups supported (standard, wide, diamond, pike; more coming)
+  - Screen 5: Tips for best results (pace, lighting, framing, ding feedback)
+  - Screen 6: You're ready! — "Get Started" button navigates to home
+  - All screens: swipeable, dot indicators, Skip button, portrait + landscape aware
+- Select button in workout history AppBar — tap to enter multi-select mode without long-pressing
+- Delete Selected bottom bar in history: full-width red button showing count, disabled until at least one workout is selected
+- Auto-refresh history screen after a workout ends — WorkoutState listener added to history_screen.dart so history, calendar, and monthly totals update without pull-to-refresh
+
+### Changed
+- History AppBar in select mode now shows only a close (✕) button; delete action moved to bottom bar
+- History AppBar when not in select mode shows "Select" text button alongside the clear-all icon
+
+### Previously added (since v2.0.0)
+- Exercise guide screen accessible from home screen header
+- FAQ screen in settings
+- Portrait-only lock enforced on iPhone, iPad, and Android (UIRequiresFullScreen set for iOS)
+- Confetti animation on workout summary screen
+- Audio fixes: fresh AudioPlayer per sound to prevent pool exhaustion on fast reps
+- Goal breakdowns: weekly goals split into daily targets
+- Tappable numbers on home screen to edit daily/weekly targets inline
+- Badges with unlock descriptions and earned dates
+- Goals toggle in Settings to fully disable goal tracking
+
+---
+
 ## [2.0.0] — 2026-03-22 — Public Release
 
 ### Release
