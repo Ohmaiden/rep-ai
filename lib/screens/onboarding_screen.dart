@@ -237,7 +237,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
             child: Column(
@@ -299,6 +302,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   trailing,
                 ],
               ],
+            ),
+          ),
             ),
           ),
         ),
@@ -498,7 +503,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -546,6 +554,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       fontSize: 13, color: _p.muted, height: 1.4),
                 ),
               ],
+            ),
+          ),
             ),
           ),
         ),
@@ -676,7 +686,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -728,6 +741,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   icon: Icons.looks_3_rounded,
                 ),
               ],
+            ),
+          ),
             ),
           ),
         ),
@@ -815,7 +830,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -865,6 +883,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ],
+            ),
+          ),
             ),
           ),
         ),

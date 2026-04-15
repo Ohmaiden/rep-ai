@@ -153,7 +153,7 @@ Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code a
 - **Description:** Rep AI is an AI-powered push-up counter that only counts reps with good form. Using your phone's camera and on-device AI, Rep AI tracks your movement in real time. Features: automatic rep counting with form detection, good vs bad form tracking, workout history with weekly/monthly stats, daily/weekly rep goals, streak tracking, portrait and landscape support. All processing happens on device. No video recorded. No data uploaded.
 - **Price:** £0.99 (one-time payment)
 - **Status:** Live on the App Store
-- **iPhone only** — iPad not supported
+- **iPhone and iPad** — portrait-only on both; `UIRequiresFullScreen=true` opts out of iPad multitasking (required for portrait-only iPad apps); `TARGETED_DEVICE_FAMILY=1,2` targets both
 - **Built via Codemagic** (cloud Mac builds)
 
 ---
