@@ -21,10 +21,9 @@ import 'screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Portrait-only across all devices (iPhone, iPad, Android phone & tablet).
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
   ]);
 
   final dbService = DatabaseService();

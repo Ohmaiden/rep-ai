@@ -16,6 +16,7 @@ import '../services/workout_state.dart';
 import '../models/workout_models.dart';
 import '../widgets/tappable_number.dart';
 import 'stats_detail_screens.dart';
+import 'exercise_guide_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,10 +48,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _weekDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Tracks the previous WorkoutState.isActive value so we can detect a
+  // true→false transition (i.e. user just finished a workout) and refresh.
+  bool _wasWorkoutActive = false;
+  WorkoutState? _workoutState;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Attach a listener once the WorkoutState provider is reachable.
+    final newState = context.read<WorkoutState>();
+    if (!identical(_workoutState, newState)) {
+      _workoutState?.removeListener(_onWorkoutStateChanged);
+      _workoutState = newState;
+      _wasWorkoutActive = newState.isActive;
+      newState.addListener(_onWorkoutStateChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _workoutState?.removeListener(_onWorkoutStateChanged);
+    super.dispose();
+  }
+
+  /// Fires whenever WorkoutState changes. We only care about the moment a
+  /// session ends (active → inactive) — that's when the home screen's stats,
+  /// streak, goals progress, badges and calendar all need to refresh from
+  /// SQLite. Skipping the active-true case avoids reloading on every rep.
+  void _onWorkoutStateChanged() {
+    final isActive = _workoutState?.isActive ?? false;
+    if (_wasWorkoutActive && !isActive) {
+      _loadData();
+    }
+    _wasWorkoutActive = isActive;
   }
 
   Future<void> _loadData() async {
@@ -213,6 +250,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                             theme.textTheme.bodyMedium),
                                   ],
                                 ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ExerciseGuideScreen(),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                    Icons.menu_book_rounded),
+                                color: theme.textTheme.bodyMedium?.color,
+                                tooltip: 'Exercise guide',
                               ),
                               IconButton(
                                 onPressed: _showHelp,

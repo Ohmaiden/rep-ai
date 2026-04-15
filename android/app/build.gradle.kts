@@ -37,7 +37,7 @@ android {
         // we don't burn an iOS build number when only the Android .aab needs
         // updating. Bump `androidVersionCode` here whenever we ship a new
         // Android build.
-        versionCode = 46
+        versionCode = 47
         versionName = flutter.versionName
     }
 

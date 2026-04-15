@@ -582,257 +582,71 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   Widget _buildWorkoutView() {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        final double deviceAngle;
-        if (orientation == Orientation.portrait) {
-          deviceAngle = 0;
-        } else {
-          // Use padding comparison instead of padding.left > 0 for reliable
-          // landscape direction detection on iOS across all models.
-          final mq = MediaQuery.of(context);
-          if (mq.padding.left > mq.padding.right) {
-            deviceAngle = 90;
-          } else {
-            deviceAngle = 270;
-          }
+    // App is portrait-locked, so deviceAngle is always 0.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WorkoutState>().setDeviceAngle(0);
+    });
+
+    return Consumer<WorkoutState>(
+      builder: (context, state, child) {
+        // Good rep: repCount went up — trigger flash animation + haptic
+        if (state.repCount > _lastRepCount) {
+          _flashController.forward(from: 0);
+          HapticFeedback.mediumImpact();
+          _lastRepCount = state.repCount;
+          _lastAttemptCount = state.attemptCount;
         }
+        // Bad rep: attemptCount went up but repCount didn't — haptic only
+        else if (state.attemptCount > _lastAttemptCount) {
+          HapticFeedback.heavyImpact();
+          Future.delayed(const Duration(milliseconds: 80), () {
+            HapticFeedback.heavyImpact();
+          });
+          _lastAttemptCount = state.attemptCount;
+        }
+
+        // Check if set is complete (after build)
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.read<WorkoutState>().setDeviceAngle(deviceAngle);
+          _checkSetComplete(state);
         });
 
-        return Consumer<WorkoutState>(
-          builder: (context, state, child) {
-            // Good rep: repCount went up — trigger flash animation + haptic
-            if (state.repCount > _lastRepCount) {
-              _flashController.forward(from: 0);
-              HapticFeedback.mediumImpact();
-              _lastRepCount = state.repCount;
-              _lastAttemptCount = state.attemptCount;
-            }
-            // Bad rep: attemptCount went up but repCount didn't — haptic only
-            else if (state.attemptCount > _lastAttemptCount) {
-              HapticFeedback.heavyImpact();
-              Future.delayed(const Duration(milliseconds: 80), () {
-                HapticFeedback.heavyImpact();
-              });
-              _lastAttemptCount = state.attemptCount;
-            }
-
-            // Check if set is complete (after build)
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _checkSetComplete(state);
-            });
-
-            final isLandscape = orientation == Orientation.landscape;
-
-            return Stack(
-              children: [
-                // Camera preview fades in from black
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _cameraFadeController,
-                    builder: (context, child) => Opacity(
-                      opacity: CurvedAnimation(
-                        parent: _cameraFadeController,
-                        curve: Curves.easeIn,
-                      ).value,
-                      child: child,
-                    ),
-                    child: _buildCameraPreview(),
-                  ),
+        return Stack(
+          children: [
+            // Camera preview fades in from black
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _cameraFadeController,
+                builder: (context, child) => Opacity(
+                  opacity: CurvedAnimation(
+                    parent: _cameraFadeController,
+                    curve: Curves.easeIn,
+                  ).value,
+                  child: child,
                 ),
+                child: _buildCameraPreview(),
+              ),
+            ),
 
-                // Gradient overlay
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: isLandscape
-                            ? LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.3),
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.75),
-                                ],
-                                stops: const [0.0, 0.15, 0.55, 1.0],
-                              )
-                            : LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.4),
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.6),
-                                ],
-                                stops: const [0.0, 0.2, 0.7, 1.0],
-                              ),
-                      ),
+            // Gradient overlay (portrait-only since the app is portrait-locked)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.4),
+                        Colors.transparent,
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.6),
+                      ],
+                      stops: const [0.0, 0.2, 0.7, 1.0],
                     ),
                   ),
                 ),
-
-                if (isLandscape) ...[
-                  // ── LANDSCAPE LAYOUT ──
-                  // Top-left: exercise label
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    child: SafeArea(
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.only(left: 16, top: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              state.exercise.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            if (state.isCustom)
-                              Text(
-                                'Set ${state.currentSet}/${state.totalSets}',
-                                style: TextStyle(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Right-side panel: controls + rep counter
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    right: 0,
-                    child: SafeArea(
-                      child: SizedBox(
-                        width: 160,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 12),
-                          child: Column(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              // Mute + form badge
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => setState(
-                                        () => _audio.toggleMute()),
-                                    child: Icon(
-                                      _audio.isMuted
-                                          ? Icons.volume_off_rounded
-                                          : Icons.volume_up_rounded,
-                                      color: Colors.white
-                                          .withValues(alpha: 0.6),
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _buildFormBadge(state.currentForm),
-                                ],
-                              ),
-
-                              // Rep counter
-                              Expanded(
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    children: [
-                                      _buildRepCounter(
-                                        state.isCustom
-                                            ? state.currentSetGoodReps
-                                                .clamp(0, state.targetReps)
-                                            : state.repCount,
-                                        landscape: true,
-                                      ),
-                                      if (state.isCustom)
-                                        Text(
-                                          '/ ${state.targetReps}',
-                                          style: TextStyle(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.5),
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                              // End button only (timer moved to bottom-left)
-                              _buildEndButton(landscape: true),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Timer — bottom left in landscape
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    child: SafeArea(
-                      child: _buildTimer(state.elapsed, landscape: true),
-                    ),
-                  ),
-
-                  // Bad rep flash — centred left of panel
-                  if (_isBadRepRecent(
-                      state.lastRepValid, state.lastRepTime))
-                    Positioned(
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: 160,
-                      child: Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter:
-                                ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDC2626)
-                                    .withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                'Fix form \u2014 rep not counted',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ] else ...[
+              ),
+            ),
                   // ── PORTRAIT LAYOUT ──
                   // Top-left: exercise label + set info
                   Positioned(
@@ -1006,9 +820,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       ),
                     ),
                   ),
-                ],
 
-                // No-pose hint — both orientations
+                // No-pose hint
                 if (_showPoseHint)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -1049,9 +862,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     ),
                   ),
 
-              ],
-            );
-          },
+          ],
         );
       },
     );
@@ -1110,7 +921,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         Duration.zero;
   }
 
-  Widget _buildRepCounter(int count, {bool landscape = false}) {
+  Widget _buildRepCounter(int count) {
     return AnimatedBuilder(
       animation: _flashAnim,
       builder: (context, child) {
@@ -1123,7 +934,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         return Text(
           '$count',
           style: TextStyle(
-            fontSize: landscape ? 64 : 88,
+            fontSize: 88,
             fontWeight: FontWeight.w900,
             color: displayColor,
             height: 1,
@@ -1229,23 +1040,21 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
-  Widget _buildTimer(Duration elapsed, {bool landscape = false}) {
+  Widget _buildTimer(Duration elapsed) {
     final mins = elapsed.inMinutes.toString().padLeft(2, '0');
     final secs = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
     return Text(
       '$mins:$secs',
-      style: TextStyle(
+      style: const TextStyle(
         color: Colors.white,
-        // Match the "End Workout" button text size in landscape (13),
-        // keep 18 in portrait for readability.
-        fontSize: landscape ? 13 : 18,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
         letterSpacing: 1,
       ),
     );
   }
 
-  Widget _buildEndButton({bool landscape = false}) {
+  Widget _buildEndButton() {
     return GestureDetector(
       onTap: _endWorkout,
       child: ClipRRect(
@@ -1253,24 +1062,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            constraints: landscape
-                ? const BoxConstraints(minWidth: 130, minHeight: 40)
-                : null,
-            padding: landscape
-                ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
-                : const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFDC2626).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: FittedBox(
+            child: const FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 'End Workout',
                 maxLines: 1,
                 style: TextStyle(
                     color: Colors.white,
-                    fontSize: landscape ? 13 : 14,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600),
               ),
             ),
