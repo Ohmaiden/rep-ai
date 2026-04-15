@@ -61,6 +61,13 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- iPad apps must support all four orientations to enable multitasking.
+	     Rep AI is portrait-only across every device, so opt out of iPad
+	     multitasking with UIRequiresFullScreen — this is what allows us
+	     to list only UIInterfaceOrientationPortrait for ~ipad without
+	     failing App Store Connect validation. -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Rep AI uses your camera to track your movement and count reps in real time.</string>
 	<key>NSMicrophoneUsageDescription</key>
