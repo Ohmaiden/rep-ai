@@ -167,6 +167,16 @@ class WorkoutState extends ChangeNotifier {
 
   // ── Common ────────────────────────────────────────────────────────────
 
+  // Live form issues from the most recent frame (for real-time badge display)
+  List<String> _currentFormIssues = [];
+
+  /// The top issue detected in the current frame, shown live in the workout UI.
+  /// Returns null when form is good or no exercise is detected.
+  String? get currentLiveFormIssue =>
+      (_currentForm?.isBadForm == true && _currentFormIssues.isNotEmpty)
+          ? _currentFormIssues.first
+          : null;
+
   // Debug: expose last landmark data for overlay
   Map<String, Map<String, double>> _lastLandmarks = {};
   String _lastFormDebug = '';
@@ -189,6 +199,19 @@ class WorkoutState extends ChangeNotifier {
     } else if (_ml.isReady) {
       _currentForm = _ml.classify(landmarks);
     }
+
+    // Resolve specific form issues for this frame.
+    // iOS geometric classifier already embeds issues in FormPrediction.
+    // Android TFLite model only outputs a label — run geometric diagnosis to
+    // identify *why* form is bad (issues are used for display only, not scoring).
+    if (_currentForm?.isBadForm == true) {
+      _currentFormIssues = _currentForm!.issues.isNotEmpty
+          ? _currentForm!.issues
+          : _ml.diagnoseIssues(landmarks, deviceAngle: _deviceAngle);
+    } else {
+      _currentFormIssues = [];
+    }
+
     _lastFormDebug = 'mlReady:${_ml.isReady} form:${_currentForm?.label ?? 'null'} lE:${lEvis.toStringAsFixed(2)} rE:${rEvis.toStringAsFixed(2)} nY:${noseY.toStringAsFixed(2)} hY:${hipY.toStringAsFixed(2)}';
     notifyListeners();
 
@@ -196,7 +219,9 @@ class WorkoutState extends ChangeNotifier {
     final prevAttempts = _analyzer.attemptCount;
 
     _analyzer.update(landmarks,
-        mlFormLabel: _currentForm?.label, deviceAngle: _deviceAngle);
+        mlFormLabel: _currentForm?.label,
+        mlFormIssues: _currentFormIssues,
+        deviceAngle: _deviceAngle);
 
     // Fire audio synchronously with the counter increment — before notifyListeners().
     if (_audio != null) {

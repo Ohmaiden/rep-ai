@@ -711,7 +711,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                               ),
                             ),
                             const SizedBox(width: 10),
-                            _buildFormBadge(state.currentForm),
+                            _buildFormBadge(state.currentForm,
+                                liveIssue: state.currentLiveFormIssue),
                           ],
                         ),
                       ),
@@ -783,9 +784,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                     borderRadius:
                                         BorderRadius.circular(20),
                                   ),
-                                  child: const Text(
-                                    'Fix your form. Rep not counted.',
-                                    style: TextStyle(
+                                  child: Text(
+                                    _badRepMessage(state.lastRepFeedback),
+                                    style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600),
@@ -918,7 +919,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   bool _isBadRepRecent(bool? lastRepValid, DateTime? lastRepTime) {
     if (lastRepValid != false || lastRepTime == null) return false;
     return DateTime.now().difference(lastRepTime) <
-        Duration.zero;
+        const Duration(seconds: 3);
   }
 
   Widget _buildRepCounter(int count) {
@@ -984,13 +985,30 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
-  Widget _buildFormBadge(dynamic currentForm, {double? maxWidth}) {
+  /// Returns a user-facing message for the bad-rep flash banner.
+  String _badRepMessage(List<String> feedback) {
+    final issue = feedback.isNotEmpty ? feedback.first : '';
+    if (issue.isEmpty || issue == 'Work on form' || issue == 'Bad form') {
+      return 'Fix your form — not counted';
+    }
+    return '$issue — not counted';
+  }
+
+  Widget _buildFormBadge(dynamic currentForm,
+      {double? maxWidth, String? liveIssue}) {
     if (currentForm == null || currentForm.isNotExercise) {
       return const SizedBox.shrink();
     }
     final isGood = currentForm.isGoodForm as bool;
     final color = isGood ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-    final label = isGood ? 'Good Form' : 'Fix Form';
+    String label;
+    if (isGood) {
+      label = 'Good Form';
+    } else if (liveIssue != null && liveIssue.isNotEmpty) {
+      label = liveIssue;
+    } else {
+      label = 'Fix Form';
+    }
 
     Widget badge = ClipRRect(
       borderRadius: BorderRadius.circular(20),

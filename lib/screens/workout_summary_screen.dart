@@ -382,6 +382,10 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                             const SizedBox(height: 16),
                           ],
 
+                          // Form issues summary (only if there were bad reps)
+                          ..._buildFormIssuesSummary(
+                              repHistory, textColor, subtextColor, surfaceColor, theme),
+
                           // Per-rep breakdown
                           if (repHistory.isNotEmpty) ...[
                             Text('Rep Breakdown',
@@ -400,6 +404,13 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                                       .withValues(alpha: 0.08)
                                   : const Color(0xFFDC2626)
                                       .withValues(alpha: 0.08);
+                              // Show the top specific issue for bad reps
+                              final repLabel = isGood
+                                  ? 'Good form'
+                                  : (rep.issues.isNotEmpty &&
+                                          rep.issues.first != 'Bad form'
+                                      ? rep.issues.first
+                                      : 'Form issues');
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 6),
                                 padding: const EdgeInsets.all(10),
@@ -427,7 +438,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                          isGood ? 'Good form' : 'Form issues',
+                                          repLabel,
                                           style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
@@ -488,6 +499,76 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
         ),
       ),
     );
+  }
+
+  /// Builds the "Form Issues" summary section.
+  /// Returns an empty list when there are no bad reps or no specific issues.
+  List<Widget> _buildFormIssuesSummary(
+    List<RepResult> repHistory,
+    Color textColor,
+    Color subtextColor,
+    Color surfaceColor,
+    ThemeData theme,
+  ) {
+    // Aggregate issues across all bad reps
+    final counts = <String, int>{};
+    for (final rep in repHistory) {
+      if (!rep.goodForm) {
+        for (final issue in rep.issues) {
+          if (issue != 'Bad form') {
+            counts[issue] = (counts[issue] ?? 0) + 1;
+          }
+        }
+      }
+    }
+    if (counts.isEmpty) return [];
+
+    // Sort by frequency descending
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return [
+      Text('Form Issues',
+          style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w700, color: textColor)),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final entry in sorted) ...[
+              Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Color(0xFFDC2626), size: 15),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(entry.key,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor)),
+                  ),
+                  Text(
+                    '${entry.value} rep${entry.value == 1 ? '' : 's'}',
+                    style: TextStyle(fontSize: 13, color: subtextColor),
+                  ),
+                ],
+              ),
+              if (entry != sorted.last) const SizedBox(height: 8),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: 24),
+    ];
   }
 
   Widget _stat(String value, String label, Color color) {

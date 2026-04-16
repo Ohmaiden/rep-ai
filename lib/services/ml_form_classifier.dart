@@ -14,18 +14,20 @@ import 'dart:math';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 class FormPrediction {
-  final String label;      // 'good_form' | 'bad_form' | 'not_exercise'
-  final double confidence; // 0.0 – 1.0
+  final String label;           // 'good_form' | 'bad_form' | 'not_exercise'
+  final double confidence;      // 0.0 – 1.0
   final List<double> allScores; // [bad_form, good_form, not_exercise]
+  final List<String> issues;    // specific reasons when bad_form
 
-  const FormPrediction(this.label, this.confidence, this.allScores);
+  const FormPrediction(this.label, this.confidence, this.allScores,
+      {this.issues = const []});
 
   bool get isGoodForm    => label == 'good_form';
   bool get isBadForm     => label == 'bad_form';
   bool get isNotExercise => label == 'not_exercise';
 
-  double get badScore        => allScores[0];
-  double get goodScore       => allScores[1];
+  double get badScore         => allScores[0];
+  double get goodScore        => allScores[1];
   double get notExerciseScore => allScores[2];
 }
 
@@ -142,6 +144,17 @@ class MLFormClassifier {
   }) =>
       _geometricClassify(landmarks, deviceAngle: deviceAngle);
 
+  /// Diagnoses specific form issues using geometric analysis.
+  /// Used on Android alongside the TFLite model — the model says *whether*
+  /// form is bad; this says *why* (e.g. 'Hips too low', 'Arms too wide').
+  List<String> diagnoseIssues(
+    Map<String, Map<String, double>> landmarks, {
+    double deviceAngle = 0,
+  }) {
+    final prediction = _geometricClassify(landmarks, deviceAngle: deviceAngle);
+    return prediction?.issues ?? [];
+  }
+
   /// Geometric form classifier for iOS — uses landmark positions instead of
   /// the TFLite model (which was trained on Android data and doesn't generalise).
   ///
@@ -241,8 +254,7 @@ class MLFormClassifier {
     }
 
     // ── 2. Form quality checks ───────────────────────────────────────────────
-    // Collect form issues — if any are found, it's bad form.
-    bool hasBadForm = false;
+    final issues = <String>[];
 
     // ── 2a. Hip sag detection ────────────────────────────────────────────────
     // From the front: if hips are visible and significantly below shoulders,
@@ -253,18 +265,17 @@ class MLFormClassifier {
       // In front-view push-up, hips and shoulders should be at similar Y.
       // A large positive gap means hips are sagging (bad form).
       if (hipBelowShoulders > 0.12) {
-        hasBadForm = true;
+        issues.add('Hips too low');
       }
     }
 
     // ── 2b. Head position check ──────────────────────────────────────────────
     // Nose should be roughly at or slightly below shoulder level during push-up.
-    // Too far below (head drooping) or above (looking up) = bad head position.
+    // Too far below (head drooping) = bad head position.
     if (nose != null) {
       final noseRelShoulder = nose['y']! - shoulderY;
-      // Head drooping significantly below shoulders
       if (noseRelShoulder > 0.15) {
-        hasBadForm = true;
+        issues.add('Head dropping');
       }
     }
 
@@ -281,8 +292,10 @@ class MLFormClassifier {
 
     if (elbowAngle != null) {
       // Elbow outside push-up range = bad arm extension
-      if (elbowAngle <= 40 || elbowAngle >= 170) {
-        hasBadForm = true;
+      if (elbowAngle <= 40) {
+        issues.add('Going too deep');
+      } else if (elbowAngle >= 170) {
+        issues.add('Not going low enough');
       }
 
       // From front view: check elbow flare. Elbows should stay relatively
@@ -296,19 +309,19 @@ class MLFormClassifier {
           final shoulderWidth = (lS['x']! - rS['x']!).abs();
           // Elbows spread > 1.8x shoulder width = excessive flare
           if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 1.8) {
-            hasBadForm = true;
+            issues.add('Arms too wide');
           }
         }
       }
 
-      return hasBadForm
-          ? const FormPrediction('bad_form', 0.65, [0.65, 0.15, 0.2])
+      return issues.isNotEmpty
+          ? FormPrediction('bad_form', 0.65, [0.65, 0.15, 0.2], issues: issues)
           : const FormPrediction('good_form', 0.65, [0.1, 0.65, 0.25]);
     }
 
     // No arm data but passed not-exercise checks — allow cautiously.
-    return hasBadForm
-        ? const FormPrediction('bad_form', 0.5, [0.5, 0.15, 0.35])
+    return issues.isNotEmpty
+        ? FormPrediction('bad_form', 0.5, [0.5, 0.15, 0.35], issues: issues)
         : const FormPrediction('good_form', 0.5, [0.15, 0.5, 0.35]);
   }
 
@@ -381,7 +394,7 @@ class MLFormClassifier {
     }
 
     // ── 2. Form quality checks ───────────────────────────────────────────────
-    bool hasBadForm = false;
+    final issues = <String>[];
 
     // ── 2a. Hip sag detection ────────────────────────────────────────────────
     // From the side: in a good push-up the body is a straight plank —
@@ -412,7 +425,7 @@ class MLFormClassifier {
       // If hip is significantly below (higher gravity value) the expected line → sag
       final hipDeviation = hipGrav - expectedHipGrav;
       if (hipDeviation > 0.06) {
-        hasBadForm = true;
+        issues.add('Hips too low');
       }
     } else {
       // No ankle data — fall back to shoulder-hip gravity gap.
@@ -420,7 +433,7 @@ class MLFormClassifier {
       // If hip drops far below shoulder, it's sagging.
       final hipSag = hipGrav - shoulderGrav;
       if (hipSag > 0.10) {
-        hasBadForm = true;
+        issues.add('Hips too low');
       }
     }
 
@@ -432,8 +445,10 @@ class MLFormClassifier {
       final double noseGrav = isLandscape ? nose['x']! : nose['y']!;
       final headDrop = noseGrav - shoulderGrav; // positive = below shoulder
       final headCrane = shoulderGrav - noseGrav; // positive = above shoulder
-      if (headDrop > 0.08 || headCrane > 0.12) {
-        hasBadForm = true;
+      if (headDrop > 0.08) {
+        issues.add('Head dropping');
+      } else if (headCrane > 0.12) {
+        issues.add('Head too high');
       }
     }
 
@@ -449,20 +464,21 @@ class MLFormClassifier {
     }
 
     if (elbowAngle != null) {
-      // Arms at extreme angles = bad extension
-      if (elbowAngle <= 40 || elbowAngle >= 170) {
-        hasBadForm = true;
+      if (elbowAngle <= 40) {
+        issues.add('Going too deep');
+      } else if (elbowAngle >= 170) {
+        issues.add('Not going low enough');
       }
 
-      return hasBadForm
-          ? const FormPrediction('bad_form', 0.7, [0.7, 0.1, 0.2])
+      return issues.isNotEmpty
+          ? FormPrediction('bad_form', 0.7, [0.7, 0.1, 0.2], issues: issues)
           : const FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
     }
 
     // Body is horizontal but no arm data — if we detected other form issues,
     // flag as bad; otherwise return not_exercise to prevent ghost reps.
-    if (hasBadForm) {
-      return const FormPrediction('bad_form', 0.55, [0.55, 0.15, 0.3]);
+    if (issues.isNotEmpty) {
+      return FormPrediction('bad_form', 0.55, [0.55, 0.15, 0.3], issues: issues);
     }
     return const FormPrediction('not_exercise', 0.5, [0.15, 0.15, 0.7]);
   }

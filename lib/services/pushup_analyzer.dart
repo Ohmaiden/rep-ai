@@ -57,6 +57,9 @@ class PushUpAnalyzer {
   int _goodFormFrames = 0;
   int _badFormFrames = 0;
 
+  // Issue votes accumulated during current rep (issue → frame count)
+  final Map<String, int> _issueVotes = {};
+
   // Frame counter to lock _topValue after settling
   int _upFrameCount = 0;
 
@@ -108,16 +111,27 @@ class PushUpAnalyzer {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
+  /// The most-voted form issue during the current rep's frames.
+  /// Returns null when no issues have been seen yet (e.g. in idle or good form).
+  String? get currentLiveIssue {
+    if (_issueVotes.isEmpty) return null;
+    return _issueVotes.entries
+        .reduce((a, b) => a.value >= b.value ? a : b)
+        .key;
+  }
+
   /// Process one frame.
   ///
-  /// [mlFormLabel]  ML model output: 'good_form' | 'bad_form' | 'not_exercise' | null
-  /// [deviceAngle]  Current device rotation in degrees:
-  ///                  0   = portrait (default)
-  ///                  90  = landscape, rotated clockwise from portrait
-  ///                  270 = landscape, rotated counter-clockwise from portrait
+  /// [mlFormLabel]   ML model output: 'good_form' | 'bad_form' | 'not_exercise' | null
+  /// [mlFormIssues]  Specific issues identified in this frame (e.g. ['Hips too low'])
+  /// [deviceAngle]   Current device rotation in degrees:
+  ///                   0   = portrait (default)
+  ///                   90  = landscape, rotated clockwise from portrait
+  ///                   270 = landscape, rotated counter-clockwise from portrait
   int update(
     Map<String, Map<String, double>> landmarks, {
     String? mlFormLabel,
+    List<String> mlFormIssues = const [],
     double deviceAngle = 0,
   }) {
     // Adapt debounce and vote window to orientation
@@ -154,7 +168,12 @@ class PushUpAnalyzer {
 
     // ── 3. Accumulate ML form votes ─────────────────────────────────────────
     if (mlFormLabel == 'good_form') _goodFormFrames++;
-    if (mlFormLabel == 'bad_form')  _badFormFrames++;
+    if (mlFormLabel == 'bad_form') {
+      _badFormFrames++;
+      for (final issue in mlFormIssues) {
+        _issueVotes[issue] = (_issueVotes[issue] ?? 0) + 1;
+      }
+    }
 
     final isExercise = mlFormLabel == 'good_form' || mlFormLabel == 'bad_form';
 
@@ -261,6 +280,7 @@ class PushUpAnalyzer {
     _badFormFrames  = 0;
     _nullFormFrames = 0;
     _idleExerciseStreak = 0;
+    _issueVotes.clear();
   }
 
   void _finishRep(double currentSignal) {
@@ -275,14 +295,24 @@ class PushUpAnalyzer {
     attemptCount++;
     if (goodRep) repCount++;
 
+    // Pick the top issues by vote count (minimum 2 frames to avoid noise)
+    final topIssues = (_issueVotes.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value)))
+        .where((e) => e.value >= 2)
+        .take(2)
+        .map((e) => e.key)
+        .toList();
+
     lastRepValid    = goodRep;
     lastRepTime     = DateTime.now();
-    lastRepFeedback = goodRep ? ['Good rep!'] : ['Work on form'];
+    lastRepFeedback = goodRep
+        ? ['Good rep!']
+        : (topIssues.isNotEmpty ? topIssues : ['Work on form']);
 
     repHistory.add(RepResult(
       repNumber: attemptCount,
       goodForm:  goodRep,
-      issues:    goodRep ? [] : ['Bad form'],
+      issues:    goodRep ? [] : (topIssues.isNotEmpty ? topIssues : ['Bad form']),
       repDuration: Duration.zero,
     ));
 
@@ -292,6 +322,7 @@ class PushUpAnalyzer {
     _bottomValue = null;
     _goodFormFrames = 0;
     _badFormFrames  = 0;
+    _issueVotes.clear();
   }
 
   /// Returns (verticalSignal, sourceName, torsoLength) or null if pose is invalid.
@@ -388,5 +419,6 @@ class PushUpAnalyzer {
     _upsideDownFrames = 0;
     _nullFormFrames = 0;
     _idleExerciseStreak = 0;
+    _issueVotes.clear();
   }
 }
