@@ -5,6 +5,19 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Animation fixes and swipe guide — build 65)
+
+### Changed
+- Wide grip bottom elbow fixed: was bending the wrong way (obtuse angle); now correctly draws back behind the shoulder for a clear acute angle
+- Pike push-up flipped to face RIGHT, consistent with all other variations
+- Pike bottom elbow fixed: elbows now correctly rise up and forward as you lower (acute angle)
+- Phone indicator repositioned to sit on the ground line for every variation (bottom of phone touches the floor)
+- Swipe navigation added to the Exercise Guide: swipe the animation left/right to browse variations; tapping a chip still works and animates the page smoothly
+- Key points card fades when switching variation
+- Bullet points: removed all em dashes from text; "1–2 metres" rewritten to "1 to 2 metres"
+
+---
+
 ## [2.4.0] — 2026-04-16 (Bad-form gallery — build 64)
 
 ### Changed

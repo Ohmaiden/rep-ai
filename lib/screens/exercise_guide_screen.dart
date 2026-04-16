@@ -1,7 +1,8 @@
 /// Exercise Guide Screen
 /// =====================
 /// Animated reference guides for all push-up variations, plus camera
-/// setup tips. Reachable from the book icon on the home screen.
+/// setup tips. Reachable from the ? icon on the home screen.
+/// Variations can be browsed by tapping the chips OR swiping the animation.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,7 +16,36 @@ class ExerciseGuideScreen extends StatefulWidget {
 }
 
 class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
-  PushUpVariation _selected = PushUpVariation.standard;
+  static final _variations = PushUpVariation.values;
+
+  int _selectedIndex = 0;
+  PushUpVariation get _selected => _variations[_selectedIndex];
+
+  late final PageController _pageController;
+  final _chipScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _chipScrollController.dispose();
+    super.dispose();
+  }
+
+  void _selectVariation(int index) {
+    if (index == _selectedIndex) return;
+    setState(() => _selectedIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,24 +61,26 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
-              // ── Variation section header ─────────────────────────────
+              // ── Variation section header ─────────────────────────────────
               _SectionHeader(
                 icon: Icons.fitness_center_rounded,
                 title: 'Push-Up Variations',
               ),
               const SizedBox(height: 12),
 
-              // Variation chip selector
+              // ── Chip selector ────────────────────────────────────────────
               SizedBox(
                 height: 36,
-                child: ListView(
+                child: ListView.builder(
+                  controller: _chipScrollController,
                   scrollDirection: Axis.horizontal,
-                  children: PushUpVariation.values.map((v) {
-                    final selected = v == _selected;
+                  itemCount: _variations.length,
+                  itemBuilder: (context, i) {
+                    final selected = i == _selectedIndex;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: GestureDetector(
-                        onTap: () => setState(() => _selected = v),
+                        onTap: () => _selectVariation(i),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
@@ -67,62 +99,78 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
                             ),
                           ),
                           child: Text(
-                            v.displayName,
+                            _variations[i].displayName,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color:
-                                  selected ? Colors.white : subtextColor,
+                              color: selected ? Colors.white : subtextColor,
                             ),
                           ),
                         ),
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Animation card
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFFF1F5FF),
-                  borderRadius: BorderRadius.circular(16),
+              // ── Animation — swipeable PageView ───────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 248, // 200 animation + 24+24 vertical padding
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: _variations.length,
+                    onPageChanged: (i) => setState(() => _selectedIndex = i),
+                    itemBuilder: (ctx, i) => Container(
+                      color: isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFF1F5FF),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: PushUpAnimationWidget(
+                        variation: _variations[i],
+                        height: 200,
+                      ),
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: PushUpAnimationWidget(
+              ),
+              const SizedBox(height: 16),
+
+              // ── Key points card ──────────────────────────────────────────
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: child,
+                ),
+                child: Card(
                   key: ValueKey(_selected),
-                  variation: _selected,
-                  height: 200,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Key points card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _selected.displayName,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      ..._selected.keyPoints.map(
-                        (point) => _BulletItem(text: point),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selected.displayName,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        ..._selected.keyPoints.map(
+                          (point) => _BulletItem(text: point),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // ── Camera setup ─────────────────────────────────────────
+              // ── Camera setup ─────────────────────────────────────────────
               _SectionHeader(
                 icon: Icons.camera_alt_rounded,
                 title: 'Best setup for tracking',
@@ -143,7 +191,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
                               'Side view gives the best results but any angle works.'),
                       _BulletItem(
                           text:
-                              'Keep about 1–2 metres distance from the phone.'),
+                              'Keep about 1 to 2 metres distance from the phone.'),
                       _BulletItem(text: 'Good lighting helps detection.'),
                     ],
                   ),
