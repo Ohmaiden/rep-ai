@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +41,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   bool _finishing = false;
   bool _isRecovering = false;
   DateTime? _pausedAt;
+
+  // Worst form frame capture (in-memory only, never saved to disk)
+  final GlobalKey _cameraPreviewKey = GlobalKey();
+  Uint8List? _worstFormImage;
+  double _worstFormBadScore = 0.0;
+  bool _capturingFrame = false;
 
   // Audio & haptic
   final WorkoutAudioService _audio = WorkoutAudioService();
@@ -370,6 +377,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             setBadReps: isCustom ? setBad : null,
             newRepRecord: isNewRepRecord,
             newFormRecord: isNewFormRecord,
+            worstFormImage: _worstFormImage,
           ),
         ),
       );
@@ -581,6 +589,31 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
+  /// Captures the camera preview as a PNG into memory.
+  /// Called when the bad-form score exceeds the previous worst — stores the
+  /// frame with the most pronounced form issue seen during the session.
+  /// Nothing is written to disk; the image lives only in this widget's state.
+  Future<void> _maybeCaptureWorstFrame() async {
+    if (_capturingFrame || !_isInitialized || _finishing || !mounted) return;
+    _capturingFrame = true;
+    try {
+      final boundary = _cameraPreviewKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      // pixelRatio 0.5 → half-resolution; plenty for a thumbnail display
+      final image = await boundary.toImage(pixelRatio: 0.5);
+      final byteData = await image.toByteData(format: ImageByteFormat.png);
+      image.dispose();
+      if (byteData != null && mounted) {
+        setState(() => _worstFormImage = byteData.buffer.asUint8List());
+      }
+    } catch (_) {
+      // Capture failed silently — summary screen handles null gracefully
+    } finally {
+      _capturingFrame = false;
+    }
+  }
+
   Widget _buildWorkoutView() {
     // App is portrait-locked, so deviceAngle is always 0.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -610,9 +643,21 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           _checkSetComplete(state);
         });
 
+        // Capture worst form frame when bad-form confidence peaks
+        final badScore = state.currentForm?.badScore ?? 0.0;
+        if (state.currentForm != null &&
+            state.currentForm!.isBadForm &&
+            badScore > _worstFormBadScore + 0.05) {
+          _worstFormBadScore = badScore;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _maybeCaptureWorstFrame();
+          });
+        }
+
         return Stack(
           children: [
             // Camera preview fades in from black
+            // Wrapped in RepaintBoundary so we can capture the worst form frame
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _cameraFadeController,
@@ -623,7 +668,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   ).value,
                   child: child,
                 ),
-                child: _buildCameraPreview(),
+                child: RepaintBoundary(
+                  key: _cameraPreviewKey,
+                  child: _buildCameraPreview(),
+                ),
               ),
             ),
 

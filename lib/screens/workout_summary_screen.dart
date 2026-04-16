@@ -5,6 +5,7 @@
 library;
 
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import '../models/workout_models.dart';
@@ -85,6 +86,7 @@ class WorkoutSummaryScreen extends StatefulWidget {
   final List<int>? setBadReps;
   final bool newRepRecord;
   final bool newFormRecord;
+  final Uint8List? worstFormImage;
 
   const WorkoutSummaryScreen({
     super.key,
@@ -94,6 +96,7 @@ class WorkoutSummaryScreen extends StatefulWidget {
     this.setBadReps,
     this.newRepRecord = false,
     this.newFormRecord = false,
+    this.worstFormImage,
   });
 
   @override
@@ -164,6 +167,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
   List<int>? get setBadReps => widget.setBadReps;
   bool get newRepRecord => widget.newRepRecord;
   bool get newFormRecord => widget.newFormRecord;
+  Uint8List? get worstFormImage => widget.worstFormImage;
 
   @override
   Widget build(BuildContext context) {
@@ -382,8 +386,8 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                             const SizedBox(height: 16),
                           ],
 
-                          // Form issues summary (only if there were bad reps)
-                          ..._buildFormIssuesSummary(
+                          // Worst form frame card (only if there were bad reps)
+                          ..._buildWorstFormCard(
                               repHistory, textColor, subtextColor, surfaceColor, theme),
 
                           // Per-rep breakdown
@@ -501,16 +505,17 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
     );
   }
 
-  /// Builds the "Form Issues" summary section.
-  /// Returns an empty list when there are no bad reps or no specific issues.
-  List<Widget> _buildFormIssuesSummary(
+  /// Builds the worst form frame card.
+  /// Shows a screenshot of the worst form moment, a natural-language issues
+  /// list, and a privacy note. Returns empty if there were no bad reps.
+  List<Widget> _buildWorstFormCard(
     List<RepResult> repHistory,
     Color textColor,
     Color subtextColor,
     Color surfaceColor,
     ThemeData theme,
   ) {
-    // Aggregate issues across all bad reps
+    // Aggregate specific issues across all bad reps
     final counts = <String, int>{};
     for (final rep in repHistory) {
       if (!rep.goodForm) {
@@ -521,49 +526,123 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
         }
       }
     }
-    if (counts.isEmpty) return [];
 
-    // Sort by frequency descending
+    final hasBadReps = repHistory.any((r) => !r.goodForm);
+    if (!hasBadReps) return [];
+
+    // Sort issues by frequency descending
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return [
-      Text('Form Issues',
+      Text('Form Review',
           style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.w700, color: textColor)),
-      const SizedBox(height: 10),
+      const SizedBox(height: 12),
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: surfaceColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+              color: const Color(0xFFDC2626).withValues(alpha: 0.18)),
         ),
+        clipBehavior: Clip.hardEdge,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final entry in sorted) ...[
-              Row(
+            // Screenshot — shown only if capture succeeded
+            if (worstFormImage != null) ...[
+              Stack(
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Color(0xFFDC2626), size: 15),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(entry.key,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: textColor)),
+                  Image.memory(
+                    worstFormImage!,
+                    height: 220,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
                   ),
-                  Text(
-                    '${entry.value} rep${entry.value == 1 ? '' : 's'}',
-                    style: TextStyle(fontSize: 13, color: subtextColor),
+                  // "Worst form" label overlay
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Worst form moment',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              if (entry != sorted.last) const SizedBox(height: 8),
             ],
+
+            // Issues list
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: sorted.isEmpty
+                  ? Text(
+                      'Focus on keeping a straight body line and full range of motion.',
+                      style: TextStyle(fontSize: 14, color: subtextColor),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final entry in sorted)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(Icons.warning_amber_rounded,
+                                      color: Color(0xFFDC2626), size: 15),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${entry.key} on '
+                                    '${entry.value} rep${entry.value == 1 ? '' : 's'}',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+
+            // Privacy note
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_outline_rounded,
+                      size: 13, color: subtextColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Captured on this device only. Nothing is saved or uploaded.',
+                      style: TextStyle(fontSize: 12, color: subtextColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

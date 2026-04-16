@@ -5,6 +5,25 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.3.0] — 2026-04-16
+
+### Added
+- Worst form screenshot on workout summary screen
+  - Camera preview is captured at the moment of highest bad-form confidence during the session
+  - Displayed as a photo card on the summary screen after the workout ends
+  - Labelled "Worst form moment" with a red overlay badge
+  - Only shown if the session had bad form reps
+- Natural-language issues list under the screenshot (e.g. "Hips too low on 3 reps")
+- Privacy note on the card: "Captured on this device only. Nothing is saved or uploaded."
+- "Form Review" section replaces Stage 1's plain issues list, incorporating both the screenshot and the issues summary in one card
+
+### Technical
+- Camera preview wrapped in `RepaintBoundary`; `toImage()` captures at 0.5× pixel ratio (thumbnail quality, minimal memory)
+- Image stored as `Uint8List` in widget state only — never written to disk, cleared when session ends
+- Capture triggers only when bad-form confidence exceeds previous peak by 5+ points, preventing redundant captures
+
+---
+
 ## [2.2.0] — 2026-04-16
 
 ### Added
