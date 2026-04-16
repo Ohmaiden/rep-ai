@@ -29,45 +29,45 @@ extension PushUpVariationInfo on PushUpVariation {
     switch (this) {
       case PushUpVariation.standard:
         return [
-          'Hands shoulder-width apart',
-          'Body in a straight line from head to heels',
-          'Lower your chest toward the floor',
-          'Keep elbows at roughly 45° to your body',
+          'Keep hands shoulder-width apart',
+          'Body in a straight line — head, hips, heels',
+          'Push your shoulder blades apart as you press up',
+          'Lower your chest to just above the floor',
         ];
       case PushUpVariation.wide:
         return [
           'Hands wider than shoulder-width',
-          'Targets the outer chest and shoulders',
-          'Elbows track outward as you lower',
-          'Keep hips level throughout',
+          'Elbows flare to the sides as you lower',
+          'Keep hips level — no sag or raised butt',
+          'Focuses more on the outer chest',
         ];
       case PushUpVariation.diamond:
         return [
-          'Hands form a triangle shape under your chest',
-          'Targets the triceps and inner chest',
-          'Elbows draw back along your sides as you lower',
-          'The most challenging push-up variation',
+          'Hands under your chest, fingers forming a diamond',
+          'Elbows stay close to your sides as you lower',
+          'Push your shoulder blades apart at the top',
+          'Hardest variation — great for building the triceps',
         ];
       case PushUpVariation.knee:
         return [
-          'Knees rest on the floor, feet raised',
-          'Keep a straight line from knees to shoulders',
-          'Great starting point for beginners',
-          'Same chest and arm movement as standard',
+          'Knees on the floor, body straight from knees to shoulders',
+          'Keep hips down — don\'t let them sag or rise',
+          'Same chest and arm movement as a full push-up',
+          'Good starting point before progressing to full push-ups',
         ];
       case PushUpVariation.pike:
         return [
-          'Start with hips raised high — inverted V shape',
-          'Targets the shoulders more than the chest',
-          'Bend elbows to lower your head toward the floor',
-          'Feet and hands stay planted throughout',
+          'Start in an upside-down V with hips raised high',
+          'Lower your head toward the floor between your hands',
+          'Push your shoulder blades apart at the top of each rep',
+          'Works the shoulders more than any other push-up variation',
         ];
       case PushUpVariation.decline:
         return [
-          'Feet elevated on a chair, step, or bench',
-          'Targets the upper chest and front shoulders',
-          'Body is angled downward throughout',
-          'More demanding than the standard push-up',
+          'Feet elevated on a bench or step',
+          'Body in a straight line from shoulders to heels',
+          'Lower your chest forward and down toward the floor',
+          'Push your shoulder blades apart as you press up',
         ];
     }
   }
@@ -76,6 +76,11 @@ extension PushUpVariationInfo on PushUpVariation {
 // ── Pose data (normalised 0–1 coords, origin = top-left) ─────────────────────
 // Ground line at y = 0.78.  All poses share the same coordinate space so
 // the painter can lerp directly between them.
+//
+// Body alignment rules:
+//   - Non-pike top: shoulder, hip, knee, ankle must be collinear (plank line)
+//   - Non-pike top: elbow must be collinear with shoulder and hand (straight arm)
+//   - Pike: hips form the inverted-V apex; ~40° angle between torso and legs
 
 class _Pose {
   final Offset hand;
@@ -112,12 +117,15 @@ class _Pose {
 
 const double _kG = 0.78; // ground Y
 
+// ── Standard ──────────────────────────────────────────────────────────────────
+// Top: arms straight (elbow on shoulder→hand line), body flat (hip & knee on
+//      shoulder→ankle line).
 const _kTopStandard = _Pose(
   hand:     Offset(0.76, _kG),
-  elbow:    Offset(0.73, 0.60),
+  elbow:    Offset(0.72, 0.64),   // on line shoulder(0.66,0.47)→hand(0.76,0.78)
   shoulder: Offset(0.66, 0.47),
-  hip:      Offset(0.37, 0.47),
-  knee:     Offset(0.28, 0.67),
+  hip:      Offset(0.37, 0.66),   // on plank line shoulder→ankle
+  knee:     Offset(0.28, 0.72),   // on plank line shoulder→ankle
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.37),
 );
@@ -125,18 +133,19 @@ const _kBotStandard = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.61, 0.74),
   shoulder: Offset(0.66, 0.67),
-  hip:      Offset(0.37, 0.67),
-  knee:     Offset(0.28, 0.73),
+  hip:      Offset(0.37, 0.74),   // on plank line shoulder(0.66,0.67)→ankle
+  knee:     Offset(0.28, 0.76),   // on plank line
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.57),
 );
 
+// ── Wide ──────────────────────────────────────────────────────────────────────
 const _kTopWide = _Pose(
   hand:     Offset(0.83, _kG),
-  elbow:    Offset(0.81, 0.60),
+  elbow:    Offset(0.75, 0.64),   // on line shoulder(0.66,0.47)→hand(0.83,0.78)
   shoulder: Offset(0.66, 0.47),
-  hip:      Offset(0.37, 0.47),
-  knee:     Offset(0.28, 0.67),
+  hip:      Offset(0.37, 0.66),
+  knee:     Offset(0.28, 0.72),
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.37),
 );
@@ -144,18 +153,20 @@ const _kBotWide = _Pose(
   hand:     Offset(0.83, _kG),
   elbow:    Offset(0.79, 0.71),
   shoulder: Offset(0.66, 0.67),
-  hip:      Offset(0.37, 0.67),
-  knee:     Offset(0.28, 0.73),
+  hip:      Offset(0.37, 0.74),
+  knee:     Offset(0.28, 0.76),
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.57),
 );
 
+// ── Diamond ───────────────────────────────────────────────────────────────────
+// Hand is directly below shoulder → arm is vertical at top.
 const _kTopDiamond = _Pose(
   hand:     Offset(0.66, _kG),
-  elbow:    Offset(0.63, 0.60),
+  elbow:    Offset(0.66, 0.64),   // on line shoulder(0.66,0.47)→hand(0.66,0.78) — vertical
   shoulder: Offset(0.66, 0.47),
-  hip:      Offset(0.37, 0.47),
-  knee:     Offset(0.28, 0.67),
+  hip:      Offset(0.37, 0.66),
+  knee:     Offset(0.28, 0.72),
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.37),
 );
@@ -163,17 +174,19 @@ const _kBotDiamond = _Pose(
   hand:     Offset(0.66, _kG),
   elbow:    Offset(0.52, 0.73),
   shoulder: Offset(0.66, 0.67),
-  hip:      Offset(0.37, 0.67),
-  knee:     Offset(0.28, 0.73),
+  hip:      Offset(0.37, 0.74),
+  knee:     Offset(0.28, 0.76),
   ankle:    Offset(0.18, _kG),
   head:     Offset(0.73, 0.57),
 );
 
+// ── Knee ──────────────────────────────────────────────────────────────────────
+// Knee rests on ground; body line runs shoulder→knee (not ankle).
 const _kTopKnee = _Pose(
   hand:     Offset(0.76, _kG),
-  elbow:    Offset(0.73, 0.62),
+  elbow:    Offset(0.72, 0.65),   // on line shoulder(0.66,0.50)→hand(0.76,0.78)
   shoulder: Offset(0.66, 0.50),
-  hip:      Offset(0.42, 0.53),
+  hip:      Offset(0.42, 0.67),   // on shoulder→knee plank line
   knee:     Offset(0.27, _kG),
   ankle:    Offset(0.20, 0.69),
   head:     Offset(0.73, 0.40),
@@ -182,48 +195,55 @@ const _kBotKnee = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.61, 0.74),
   shoulder: Offset(0.66, 0.68),
-  hip:      Offset(0.42, 0.71),
+  hip:      Offset(0.42, 0.74),   // on shoulder→knee plank line
   knee:     Offset(0.27, _kG),
   ankle:    Offset(0.20, 0.69),
   head:     Offset(0.73, 0.58),
 );
 
+// ── Pike ──────────────────────────────────────────────────────────────────────
+// Inverted-V with ~40° angle at hip between torso and legs.
+// Wider hand/ankle stance (0.33 and 0.65) creates a realistic pike shape.
+// Head moves forward (toward floor) as figure lowers.
 const _kTopPike = _Pose(
-  hand:     Offset(0.42, _kG),
-  elbow:    Offset(0.41, 0.58),
-  shoulder: Offset(0.44, 0.47),
-  hip:      Offset(0.50, 0.22),
-  knee:     Offset(0.54, 0.49),
-  ankle:    Offset(0.57, _kG),
-  head:     Offset(0.38, 0.60),
+  hand:     Offset(0.33, _kG),
+  elbow:    Offset(0.38, 0.66),   // on line shoulder(0.43,0.52)→hand(0.33,0.78) — straight arm
+  shoulder: Offset(0.43, 0.52),
+  hip:      Offset(0.50, 0.35),   // apex of V — elevated but realistic (~40° V angle)
+  knee:     Offset(0.59, 0.61),   // on hip→ankle line
+  ankle:    Offset(0.65, _kG),
+  head:     Offset(0.36, 0.60),   // hanging between arms
 );
 const _kBotPike = _Pose(
-  hand:     Offset(0.42, _kG),
-  elbow:    Offset(0.35, 0.70),
-  shoulder: Offset(0.44, 0.62),
-  hip:      Offset(0.50, 0.34),
-  knee:     Offset(0.54, 0.53),
-  ankle:    Offset(0.57, _kG),
-  head:     Offset(0.38, 0.74),
+  hand:     Offset(0.33, _kG),
+  elbow:    Offset(0.30, 0.72),   // bent arm
+  shoulder: Offset(0.38, 0.68),
+  hip:      Offset(0.50, 0.47),   // hips lower as figure descends
+  knee:     Offset(0.59, 0.66),
+  ankle:    Offset(0.65, _kG),
+  head:     Offset(0.29, 0.75),   // moves forward and down toward floor
 );
 
+// ── Decline ───────────────────────────────────────────────────────────────────
+// Feet elevated (y=0.23); body line tilts from upper-left to lower-right.
+// Head is distinct from elbow and moves forward as figure lowers.
 const _kTopDecline = _Pose(
   hand:     Offset(0.76, _kG),
-  elbow:    Offset(0.74, 0.62),
+  elbow:    Offset(0.72, 0.66),   // on line shoulder(0.67,0.52)→hand(0.76,0.78)
   shoulder: Offset(0.67, 0.52),
-  hip:      Offset(0.42, 0.39),
-  knee:     Offset(0.30, 0.28),
+  hip:      Offset(0.42, 0.37),   // on shoulder→ankle plank line
+  knee:     Offset(0.30, 0.29),   // on shoulder→ankle plank line
   ankle:    Offset(0.20, 0.23),
-  head:     Offset(0.74, 0.62),
+  head:     Offset(0.77, 0.44),   // forward of shoulder (figure faces right-and-down)
 );
 const _kBotDecline = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.63, 0.73),
   shoulder: Offset(0.67, 0.70),
-  hip:      Offset(0.42, 0.53),
-  knee:     Offset(0.30, 0.28),
+  hip:      Offset(0.42, 0.45),   // on shoulder→ankle plank line
+  knee:     Offset(0.30, 0.33),   // on shoulder→ankle plank line
   ankle:    Offset(0.20, 0.23),
-  head:     Offset(0.74, 0.76),
+  head:     Offset(0.79, 0.72),   // head moves forward and down toward floor
 );
 
 ({_Pose top, _Pose bottom, bool showPlatform, bool kneeOnGround})
@@ -266,32 +286,32 @@ List<_CalloutDef> _calloutsFor(PushUpVariation v) {
   switch (v) {
     case PushUpVariation.standard:
       return [
-        _CalloutDef(text: 'Flat back',      anchor: const Offset(0.51, 0.47), label: const Offset(0.24, 0.18)),
+        _CalloutDef(text: 'Flat back',      anchor: const Offset(0.51, 0.57), label: const Offset(0.24, 0.20)),
         _CalloutDef(text: 'Shoulder-width', anchor: const Offset(0.76, _kG),  label: const Offset(0.70, 0.90)),
       ];
     case PushUpVariation.wide:
       return [
         _CalloutDef(text: 'Arms wide',  anchor: const Offset(0.83, _kG),  label: const Offset(0.76, 0.90)),
-        _CalloutDef(text: 'Hips level', anchor: const Offset(0.37, 0.47), label: const Offset(0.24, 0.18)),
+        _CalloutDef(text: 'Hips level', anchor: const Offset(0.37, 0.66), label: const Offset(0.24, 0.20)),
       ];
     case PushUpVariation.diamond:
       return [
         _CalloutDef(text: 'Hands close', anchor: const Offset(0.66, _kG),  label: const Offset(0.57, 0.90)),
-        _CalloutDef(text: 'Elbows back', anchor: const Offset(0.63, 0.55), label: const Offset(0.24, 0.28)),
+        _CalloutDef(text: 'Elbows back', anchor: const Offset(0.59, 0.65), label: const Offset(0.24, 0.28)),
       ];
     case PushUpVariation.knee:
       return [
         _CalloutDef(text: 'Knee pivot',    anchor: const Offset(0.27, _kG),  label: const Offset(0.24, 0.90)),
-        _CalloutDef(text: 'Body straight', anchor: const Offset(0.54, 0.51), label: const Offset(0.24, 0.18)),
+        _CalloutDef(text: 'Body straight', anchor: const Offset(0.54, 0.60), label: const Offset(0.24, 0.18)),
       ];
     case PushUpVariation.pike:
       return [
-        _CalloutDef(text: 'Hips high', anchor: const Offset(0.50, 0.22), label: const Offset(0.63, 0.10)),
-        _CalloutDef(text: 'Head down', anchor: const Offset(0.38, 0.60), label: const Offset(0.26, 0.52)),
+        _CalloutDef(text: 'Hips high', anchor: const Offset(0.50, 0.35), label: const Offset(0.62, 0.22)),
+        _CalloutDef(text: 'Head down', anchor: const Offset(0.36, 0.60), label: const Offset(0.30, 0.50)),
       ];
     case PushUpVariation.decline:
       return [
-        _CalloutDef(text: 'Feet up',    anchor: const Offset(0.20, 0.23), label: const Offset(0.27, 0.07)),
+        _CalloutDef(text: 'Feet up',     anchor: const Offset(0.20, 0.23), label: const Offset(0.27, 0.07)),
         _CalloutDef(text: 'Upper chest', anchor: const Offset(0.67, 0.52), label: const Offset(0.66, 0.13)),
       ];
   }
@@ -363,12 +383,10 @@ class _PushUpAnimationWidgetState extends State<PushUpAnimationWidget>
     const pUpEnd      = (_downMs + _holdBot + _upMs) / _cycleMs;
 
     if (t < pDownEnd) {
-      // Fading out as figure descends
       return 1.0 - (t / pDownEnd) * 0.4;
     } else if (t < pHoldBotEnd) {
       return 0.6;
     } else if (t < pUpEnd) {
-      // Fading back in as figure rises
       return 0.6 + 0.4 * ((t - pHoldBotEnd) / (_upMs / _cycleMs));
     } else {
       return 1.0;
@@ -516,8 +534,7 @@ class _PushUpPainter extends CustomPainter {
     bodyPaint.style = PaintingStyle.stroke;
 
     // ── Phone placement indicator ────────────────────────────────────────────
-    // A small phone outline on the left edge at chest height, showing where
-    // the user should position their camera.
+    // Placed in FRONT of the head (in the direction the figure faces).
     _drawPhoneIndicator(canvas, size);
 
     // ── Callout labels ───────────────────────────────────────────────────────
@@ -526,10 +543,30 @@ class _PushUpPainter extends CustomPainter {
     }
   }
 
-  /// Draws a tiny phone silhouette on the left edge at chest height.
+  /// Returns the normalised (cx, cy) for the phone indicator.
+  /// For all horizontal push-ups the figure faces right, so the phone sits
+  /// just to the right of the head. For pike the head hangs down-left, so
+  /// the phone sits forward of the hanging head position.
+  (double cx, double cy) _phonePosition() {
+    switch (variation) {
+      case PushUpVariation.pike:
+        // Head faces down-and-left; phone in front (further left, near floor)
+        return (0.16, 0.72);
+      case PushUpVariation.knee:
+        return (0.91, 0.40);
+      case PushUpVariation.decline:
+        return (0.91, 0.44);
+      default:
+        // standard, wide, diamond: head at ~(0.73, 0.37)
+        return (0.91, 0.37);
+    }
+  }
+
+  /// Draws a tiny phone silhouette in front of the figure's head.
   void _drawPhoneIndicator(Canvas canvas, Size size) {
-    final cx = size.width * 0.055;
-    final cy = size.height * 0.50;
+    final (normX, normY) = _phonePosition();
+    final cx = size.width  * normX;
+    final cy = size.height * normY;
     final pw = (size.width * 0.036).clamp(8.0, 14.0);
     final ph = pw * 1.9;
 

@@ -5,6 +5,20 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Stage 3 animation polish — build 63)
+
+### Changed
+- **Phone indicator** moved to be in front of the figure's head (right edge for all horizontal variations; left/floor edge for pike) instead of the far-left background
+- **Arms straight at top position**: elbow is now collinear with shoulder and hand for all six variations — no more obtuse angle at the top
+- **Body alignment fixed**: hip and knee now lie on the shoulder-to-ankle plank line for all non-pike variations in both top and bottom poses — no more raised-butt appearance
+- **Pike push-up** redesigned with a wider, more realistic inverted-V (~40° between torso and legs vs the previous near-acute shape); hands and feet stance is wider; hip is at a realistic training height
+- **Head-forward movement** added to pike and decline: head moves toward the floor as the figure lowers, matching the real movement pattern
+- **Decline head** fixed — was previously drawn at the same position as the elbow; now correctly positioned forward of the shoulder
+- **Bullet points** rewritten across all six variations: plain language, no jargon, shoulder protraction cue included, no filler points
+- Callout anchor positions updated to match corrected figure geometry
+
+---
+
 ## [2.3.0] — 2026-04-16 (Stage 2 revised — build 62)
 
 ### Changed
