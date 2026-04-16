@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -42,10 +43,13 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   bool _isRecovering = false;
   DateTime? _pausedAt;
 
-  // Worst form frame capture (in-memory only, never saved to disk)
+  // Per-rep bad-form screenshot capture.
+  // Frames are held in memory during the session; saved to disk at the end.
   final GlobalKey _cameraPreviewKey = GlobalKey();
-  Uint8List? _worstFormImage;
-  double _worstFormBadScore = 0.0;
+  final List<_RepCapture> _pendingCaptures = [];
+  Uint8List? _currentRepImage;           // best frame captured so far in current rep
+  double _currentRepBestBadScore = 0.0;  // highest bad-form score seen in current rep
+  int _lastRepHistoryLen = 0;            // used to detect when a new rep finishes
   bool _capturingFrame = false;
 
   // Audio & haptic
@@ -365,6 +369,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       final isNewFormRecord =
           session.formScore > oldBestForm && session.totalReps >= 3;
 
+      // Save any captured bad-form frames to disk before navigating
+      final captures = await _saveCapturesToDisk(session.id);
+
       if (!mounted) return;
 
       Navigator.pushReplacement(
@@ -377,7 +384,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             setBadReps: isCustom ? setBad : null,
             newRepRecord: isNewRepRecord,
             newFormRecord: isNewFormRecord,
-            worstFormImage: _worstFormImage,
+            badFormCaptures: captures,
           ),
         ),
       );
@@ -589,28 +596,52 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
-  /// Captures the camera preview as a PNG into memory.
-  /// Called when the bad-form score exceeds the previous worst — stores the
-  /// frame with the most pronounced form issue seen during the session.
-  /// Nothing is written to disk; the image lives only in this widget's state.
-  Future<void> _maybeCaptureWorstFrame() async {
+  /// Captures the camera preview as a PNG and stores it as the best frame
+  /// seen so far during the current rep. Called whenever bad-form confidence
+  /// peaks — only the final value (_currentRepImage) is kept when the rep ends.
+  Future<void> _maybeCaptureRepFrame() async {
     if (_capturingFrame || !_isInitialized || _finishing || !mounted) return;
     _capturingFrame = true;
     try {
       final boundary = _cameraPreviewKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       if (boundary == null) return;
-      // pixelRatio 0.5 → half-resolution; plenty for a thumbnail display
-      final image = await boundary.toImage(pixelRatio: 0.5);
+      final image = await boundary.toImage(pixelRatio: 0.6);
       final byteData = await image.toByteData(format: ImageByteFormat.png);
       image.dispose();
       if (byteData != null && mounted) {
-        setState(() => _worstFormImage = byteData.buffer.asUint8List());
+        _currentRepImage = byteData.buffer.asUint8List();
       }
     } catch (_) {
-      // Capture failed silently — summary screen handles null gracefully
+      // Capture failed silently — rep still counted normally
     } finally {
       _capturingFrame = false;
+    }
+  }
+
+  /// Saves all pending in-memory captures to the app's documents directory
+  /// and returns a list of [BadFormCapture] with their on-disk paths.
+  Future<List<BadFormCapture>> _saveCapturesToDisk(String sessionId) async {
+    if (_pendingCaptures.isEmpty) return [];
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final captureDir = Directory('${docsDir.path}/rep_ai_bad_form');
+      await captureDir.create(recursive: true);
+      final saved = <BadFormCapture>[];
+      for (final c in _pendingCaptures) {
+        final file = File(
+          '${captureDir.path}/badform_${sessionId}_rep${c.repNumber}.png',
+        );
+        await file.writeAsBytes(c.image);
+        saved.add(BadFormCapture(
+          filePath: file.path,
+          issues: c.issues,
+          repNumber: c.repNumber,
+        ));
+      }
+      return saved;
+    } catch (_) {
+      return []; // Save failed silently — summary shows issues list only
     }
   }
 
@@ -643,14 +674,31 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           _checkSetComplete(state);
         });
 
-        // Capture worst form frame when bad-form confidence peaks
+        // When a rep finishes, check if it was bad and stash its best frame.
+        final repLen = state.repHistory.length;
+        if (repLen > _lastRepHistoryLen) {
+          _lastRepHistoryLen = repLen;
+          final newRep = state.repHistory.last;
+          if (!newRep.goodForm && _currentRepImage != null) {
+            _pendingCaptures.add(_RepCapture(
+              image: _currentRepImage!,
+              issues: List.from(newRep.issues),
+              repNumber: newRep.repNumber,
+            ));
+          }
+          // Reset for the next rep regardless of form
+          _currentRepBestBadScore = 0.0;
+          _currentRepImage = null;
+        }
+
+        // Capture the frame whenever bad-form confidence peaks within the current rep
         final badScore = state.currentForm?.badScore ?? 0.0;
         if (state.currentForm != null &&
             state.currentForm!.isBadForm &&
-            badScore > _worstFormBadScore + 0.05) {
-          _worstFormBadScore = badScore;
+            badScore > _currentRepBestBadScore + 0.05) {
+          _currentRepBestBadScore = badScore;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _maybeCaptureWorstFrame();
+            _maybeCaptureRepFrame();
           });
         }
 
@@ -1149,4 +1197,21 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       ),
     );
   }
+}
+
+// ── Private data class ────────────────────────────────────────────────────────
+
+/// Holds an in-memory capture for a single bad-form rep while the workout is
+/// running. Saved to disk in [_WorkoutScreenState._saveCapturesToDisk] when
+/// the workout ends and then discarded from memory.
+class _RepCapture {
+  final Uint8List image;
+  final List<String> issues;
+  final int repNumber;
+
+  _RepCapture({
+    required this.image,
+    required this.issues,
+    required this.repNumber,
+  });
 }

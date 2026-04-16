@@ -105,3 +105,18 @@ enum ExercisePhase {
   up,     // Arms extended (top of push-up)
   down,   // Arms bent (bottom of push-up)
 }
+
+/// A screenshot captured at the worst-form moment of a bad-form rep.
+/// Saved as a PNG file in the app's documents directory so the user can
+/// view and delete it. Nothing is uploaded or shared.
+class BadFormCapture {
+  final String filePath;     // absolute path to the on-device PNG
+  final List<String> issues; // form issues detected during that rep
+  final int repNumber;
+
+  const BadFormCapture({
+    required this.filePath,
+    required this.issues,
+    required this.repNumber,
+  });
+}

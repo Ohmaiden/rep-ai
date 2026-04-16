@@ -5,6 +5,28 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.3.0] — 2026-04-16 (Stage 2 revised — build 62)
+
+### Changed
+- Per-rep bad-form screenshots replace the single "worst moment" capture
+  - One screenshot is captured per bad-form rep (at the frame of peak bad-form confidence within that rep, not during setup)
+  - Screenshots are saved to the app's documents directory at the end of the session
+  - Workout Summary shows a horizontal thumbnail strip — "Bad Form Captures (N)"
+  - Tap any thumbnail → full-screen viewer with pinch-to-zoom and issue overlay
+  - Delete button in the full-screen viewer removes the photo from the device with a confirmation dialog
+  - If file save fails, the session still completes and the issues list is shown without thumbnails
+
+### Technical
+- `BadFormCapture` model added to `workout_models.dart` (`filePath`, `issues`, `repNumber`)
+- `WorkoutScreen`: per-rep capture state (`_pendingCaptures`, `_currentRepImage`,
+  `_currentRepBestBadScore`, `_lastRepHistoryLen`); frames saved via
+  `_saveCapturesToDisk()` using `path_provider` into `rep_ai_bad_form/`
+- `WorkoutSummaryScreen`: `worstFormImage` replaced by `List<BadFormCapture> badFormCaptures`;
+  mutable `_captures` state updated live on delete; new `_BadFormViewer` widget
+- `_RepCapture` private struct holds in-memory data between frame capture and session end
+
+---
+
 ## [2.4.0] — 2026-04-16
 
 ### Added
