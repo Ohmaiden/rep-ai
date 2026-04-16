@@ -1,12 +1,11 @@
 /// Workout Summary Screen
 /// =======================
 /// Full-screen post-workout summary with stats, per-set and per-rep breakdown.
-/// Includes a confetti burst animation on load and a scrollable strip of
-/// bad-form screenshots (one per bad rep) that can be tapped to view
-/// full-screen and deleted from the device.
+/// Includes a confetti burst animation on load and a scrollable thumbnail strip
+/// of bad-form screenshots. Tap any thumbnail to open a swipeable full-screen
+/// gallery (no disk writes — images are in memory only).
 library;
 
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
@@ -105,8 +104,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
   late final Animation<double> _confettiAnim;
   late final List<_ConfettiParticle> _particles;
 
-  // Mutable local copy so the list updates live when the user deletes photos
-  late List<BadFormCapture> _captures;
+  List<BadFormCapture> get _captures => widget.badFormCaptures;
 
   static const List<Color> _confettiColors = [
     Color(0xFF2563EB),
@@ -118,8 +116,6 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
   @override
   void initState() {
     super.initState();
-    _captures = List.from(widget.badFormCaptures);
-
     _confettiController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -583,13 +579,13 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                   itemCount: _captures.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (ctx, i) =>
-                      _buildThumbnail(ctx, _captures[i]),
+                      _buildThumbnail(ctx, i),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Text(
-                  'Tap a photo to view full screen and delete',
+                  'Tap a photo to view · swipe to browse',
                   style: TextStyle(fontSize: 11, color: subtextColor),
                 ),
               ),
@@ -650,9 +646,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      _captures.isNotEmpty
-                          ? 'Photos saved on this device only. Nothing is uploaded.'
-                          : 'Captured on this device only. Nothing is uploaded.',
+                      'Captured in memory only. Nothing is saved or uploaded.',
                       style: TextStyle(fontSize: 12, color: subtextColor),
                     ),
                   ),
@@ -666,9 +660,10 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
     ];
   }
 
-  Widget _buildThumbnail(BuildContext ctx, BadFormCapture capture) {
+  Widget _buildThumbnail(BuildContext ctx, int index) {
+    final capture = _captures[index];
     return GestureDetector(
-      onTap: () => _openCapture(ctx, capture),
+      onTap: () => _openGallery(ctx, index),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
@@ -677,9 +672,9 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Image
-              Image.file(
-                File(capture.filePath),
+              // Image from memory
+              Image.memory(
+                capture.imageBytes,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.black26,
@@ -730,7 +725,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
                     ),
                   ),
                 ),
-              // Tap hint overlay (subtle magnifier icon, top-right)
+              // Tap hint (subtle magnifier, top-right)
               Positioned(
                 top: 6,
                 right: 6,
@@ -744,15 +739,13 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
     );
   }
 
-  void _openCapture(BuildContext ctx, BadFormCapture capture) {
+  void _openGallery(BuildContext ctx, int initialIndex) {
     Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => _BadFormViewer(
-          capture: capture,
-          onDeleted: () {
-            setState(() => _captures.remove(capture));
-          },
+        builder: (_) => _BadFormGallery(
+          captures: _captures,
+          initialIndex: initialIndex,
         ),
       ),
     );
@@ -780,56 +773,43 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
   }
 }
 
-// ── Full-screen bad-form viewer ───────────────────────────────────────────────
+// ── Full-screen swipeable bad-form gallery ────────────────────────────────────
 
-class _BadFormViewer extends StatefulWidget {
-  final BadFormCapture capture;
-  final VoidCallback onDeleted;
+class _BadFormGallery extends StatefulWidget {
+  final List<BadFormCapture> captures;
+  final int initialIndex;
 
-  const _BadFormViewer({required this.capture, required this.onDeleted});
+  const _BadFormGallery({
+    required this.captures,
+    required this.initialIndex,
+  });
 
   @override
-  State<_BadFormViewer> createState() => _BadFormViewerState();
+  State<_BadFormGallery> createState() => _BadFormGalleryState();
 }
 
-class _BadFormViewerState extends State<_BadFormViewer> {
-  bool _deleting = false;
+class _BadFormGalleryState extends State<_BadFormGallery> {
+  late final PageController _pageController;
+  late int _currentIndex;
 
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete photo?'),
-        content: const Text(
-            'This removes the photo from your device. This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626)),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
 
-    setState(() => _deleting = true);
-    try {
-      final file = File(widget.capture.filePath);
-      if (await file.exists()) await file.delete();
-    } catch (_) {}
-    widget.onDeleted();
-    if (mounted) Navigator.pop(context);
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final capture = widget.captures[_currentIndex];
+    final total = widget.captures.length;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -837,42 +817,42 @@ class _BadFormViewerState extends State<_BadFormViewer> {
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          'Rep ${widget.capture.repNumber}',
-          style: const TextStyle(color: Colors.white),
+          total > 1
+              ? 'Rep ${capture.repNumber}  ·  ${_currentIndex + 1} of $total'
+              : 'Rep ${capture.repNumber}',
+          style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
-        actions: [
-          if (!_deleting)
-            TextButton.icon(
-              onPressed: _confirmDelete,
-              icon: const Icon(Icons.delete_outline,
-                  color: Color(0xFFDC2626), size: 20),
-              label: const Text('Delete',
-                  style: TextStyle(
-                      color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
-            ),
-        ],
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Full-res image with pinch-to-zoom
-          InteractiveViewer(
-            minScale: 0.8,
-            maxScale: 4.0,
-            child: Center(
-              child: Image.file(
-                File(widget.capture.filePath),
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Center(
-                  child: Text('Image not available',
-                      style: TextStyle(color: Colors.white54, fontSize: 16)),
+          // Swipeable pages — each with pinch-to-zoom
+          PageView.builder(
+            controller: _pageController,
+            itemCount: total,
+            onPageChanged: (i) => setState(() => _currentIndex = i),
+            itemBuilder: (ctx, i) {
+              final c = widget.captures[i];
+              return InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.memory(
+                    c.imageBytes,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Text('Image not available',
+                          style:
+                              TextStyle(color: Colors.white54, fontSize: 16)),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
 
           // Form issues overlay (bottom)
-          if (widget.capture.issues.isNotEmpty)
+          if (capture.issues.isNotEmpty)
             Positioned(
               bottom: 24,
               left: 16,
@@ -905,7 +885,7 @@ class _BadFormViewerState extends State<_BadFormViewer> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      for (final issue in widget.capture.issues)
+                      for (final issue in capture.issues)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
@@ -922,12 +902,32 @@ class _BadFormViewerState extends State<_BadFormViewer> {
               ),
             ),
 
-          // Deleting spinner
-          if (_deleting)
-            const ColoredBox(
-              color: Colors.black54,
-              child: Center(
-                  child: CircularProgressIndicator(color: Colors.white)),
+          // Swipe hint dots (only when multiple captures)
+          if (total > 1)
+            Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(total, (i) {
+                    final active = i == _currentIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 16 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
         ],
       ),

@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -369,8 +368,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       final isNewFormRecord =
           session.formScore > oldBestForm && session.totalReps >= 3;
 
-      // Save any captured bad-form frames to disk before navigating
-      final captures = await _saveCapturesToDisk(session.id);
+      // Convert in-memory captures to BadFormCapture — no disk write needed
+      final captures = _pendingCaptures
+          .map((c) => BadFormCapture(
+                imageBytes: c.image,
+                issues: c.issues,
+                repNumber: c.repNumber,
+              ))
+          .toList();
 
       if (!mounted) return;
 
@@ -616,32 +621,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       // Capture failed silently — rep still counted normally
     } finally {
       _capturingFrame = false;
-    }
-  }
-
-  /// Saves all pending in-memory captures to the app's documents directory
-  /// and returns a list of [BadFormCapture] with their on-disk paths.
-  Future<List<BadFormCapture>> _saveCapturesToDisk(String sessionId) async {
-    if (_pendingCaptures.isEmpty) return [];
-    try {
-      final docsDir = await getApplicationDocumentsDirectory();
-      final captureDir = Directory('${docsDir.path}/rep_ai_bad_form');
-      await captureDir.create(recursive: true);
-      final saved = <BadFormCapture>[];
-      for (final c in _pendingCaptures) {
-        final file = File(
-          '${captureDir.path}/badform_${sessionId}_rep${c.repNumber}.png',
-        );
-        await file.writeAsBytes(c.image);
-        saved.add(BadFormCapture(
-          filePath: file.path,
-          issues: c.issues,
-          repNumber: c.repNumber,
-        ));
-      }
-      return saved;
-    } catch (_) {
-      return []; // Save failed silently — summary shows issues list only
     }
   }
 

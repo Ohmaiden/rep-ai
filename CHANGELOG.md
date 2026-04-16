@@ -5,6 +5,26 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Bad-form gallery — build 64)
+
+### Changed
+- Bad-form screenshots are now kept in memory only — no disk writes at all
+- Tapping a thumbnail opens a swipeable full-screen gallery (PageView) starting at the tapped photo
+- Swipe left/right to browse all bad-form captures in one go
+- Animated page indicator dots shown when there are multiple captures
+- Issues overlay updates as you swipe to match the current photo
+- Removed delete button (photos are discarded automatically when you leave the summary)
+- Privacy note updated: "Captured in memory only. Nothing is saved or uploaded."
+
+### Technical
+- `BadFormCapture.filePath` replaced by `BadFormCapture.imageBytes: Uint8List`
+- `WorkoutScreen._saveCapturesToDisk()` removed; `_pendingCaptures` mapped directly to `BadFormCapture` in `_endWorkout`
+- `path_provider` import removed from `workout_screen.dart`
+- `WorkoutSummaryScreen._captures` is now a getter (no mutable copy needed)
+- `_BadFormViewer` replaced by `_BadFormGallery` with `PageController` + `InteractiveViewer` per page
+
+---
+
 ## [2.4.0] — 2026-04-16 (Stage 3 animation polish — build 63)
 
 ### Changed

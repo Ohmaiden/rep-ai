@@ -3,6 +3,8 @@
 /// Defines the data structures used throughout the app.
 library;
 
+import 'dart:typed_data';
+
 /// Represents a single workout session.
 /// A session is one continuous block of exercise (e.g., "20 push-ups on March 9th").
 class WorkoutSession {
@@ -106,16 +108,15 @@ enum ExercisePhase {
   down,   // Arms bent (bottom of push-up)
 }
 
-/// A screenshot captured at the worst-form moment of a bad-form rep.
-/// Saved as a PNG file in the app's documents directory so the user can
-/// view and delete it. Nothing is uploaded or shared.
+/// A screenshot captured at the peak bad-form moment of a rep.
+/// Held in memory for the session only — nothing is written to disk.
 class BadFormCapture {
-  final String filePath;     // absolute path to the on-device PNG
-  final List<String> issues; // form issues detected during that rep
+  final Uint8List imageBytes; // in-memory PNG bytes
+  final List<String> issues;  // form issues detected during that rep
   final int repNumber;
 
   const BadFormCapture({
-    required this.filePath,
+    required this.imageBytes,
     required this.issues,
     required this.repNumber,
   });
