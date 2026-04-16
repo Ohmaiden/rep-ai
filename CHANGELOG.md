@@ -5,6 +5,13 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Pike elbow direction fix — build 69)
+
+### Changed
+- Pike push-up bottom elbow now points downward toward the ground (draws back and down from the shoulder, matching the decline push-up style) instead of upward
+
+---
+
 ## [2.4.0] — 2026-04-16 (Wide push-up animation rework — build 68)
 
 ### Changed
