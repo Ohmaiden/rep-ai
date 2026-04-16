@@ -5,6 +5,19 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Push Ups exercise hub + wide-elbow fix — build 75)
+
+### Changed
+- Wide grip push-up bottom elbow now draws back behind the shoulder (same direction as all other variations) instead of forward; the joint now visually moves toward the ground as it should
+- Workout tab redesigned: replaced direct Quick/Custom buttons with an exercise category list — "Push Ups" card is the first entry
+- Tapping "Push Ups" opens a bottom sheet with three options: Form Guide (opens animated exercise guide), Quick Workout, and Custom Workout; designed to extend with more exercises later
+
+### Technical
+- `WorkoutHubScreen` split into `_ExerciseCard` and `_ExerciseOptionsSheet` helper widgets
+- `ExerciseGuideScreen` imported into `WorkoutHubScreen` for direct push navigation
+
+---
+
 ## [2.4.0] — 2026-04-16 (Workout hub, guide polish, wide-elbow fix — build 71)
 
 ### Changed

@@ -141,9 +141,9 @@ const _kBotStandard = _Pose(
 
 // ── Wide ──────────────────────────────────────────────────────────────────────
 // Hand is at x=0.80 (vs standard 0.76) — clearly wider without making the arm
-// look unrealistically long.  At the bottom the elbow flares FORWARD/OUTWARD
-// (wide push-up elbows flare to the sides, which in side-view appears as the
-// elbow going ahead of the shoulder rather than drawing back like standard).
+// look unrealistically long.  At the bottom the elbow draws BACK behind the
+// shoulder (same direction as all other variations), so the joint moves toward
+// the ground rather than forward.
 const _kTopWide = _Pose(
   hand:     Offset(0.80, _kG),    // wider than standard (0.76) but not extreme
   elbow:    Offset(0.74, 0.64),   // collinear on shoulder(0.66,0.47)→hand(0.80,0.78) line
@@ -155,7 +155,7 @@ const _kTopWide = _Pose(
 );
 const _kBotWide = _Pose(
   hand:     Offset(0.80, _kG),
-  elbow:    Offset(0.80, 0.73),   // elbow above hand (forearm vertical), below shoulder (upper arm horizontal) — points DOWN
+  elbow:    Offset(0.63, 0.73),   // acute: elbow draws back behind shoulder — same direction as standard, points toward ground
   shoulder: Offset(0.66, 0.70),   // drops slightly lower than standard (wider ROM)
   hip:      Offset(0.37, 0.75),   // on plank line shoulder(0.66,0.70)→ankle(0.18,0.78)
   knee:     Offset(0.28, 0.76),
