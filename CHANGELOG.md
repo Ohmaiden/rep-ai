@@ -5,6 +5,19 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Stretch rejection — build 66)
+
+### Changed
+- Cat-pose / lying back-stretch no longer counts as a rep: the analyzer now compares hip travel to shoulder travel each rep attempt; if the hips barely moved relative to the shoulders (ratio below 40%) the rep is discarded without affecting good/bad-form indicators
+
+### Technical
+- `PushUpAnalyzer` now tracks a smoothed hip-Y signal (α = 0.4) alongside the existing shoulder signal
+- `_hipTopValue` / `_hipBottomValue` record the hip range-of-motion during each attempt
+- `_hipCoActive` flag gates the check — only applied when hip landmarks were visible for the full attempt, avoiding false rejections when the camera angle obscures the hips
+- Stretch rejection runs in `_finishRep()` before the debouncer; discarded attempts call `_goIdle()` cleanly without incrementing any counter
+
+---
+
 ## [2.4.0] — 2026-04-16 (Animation fixes and swipe guide — build 65)
 
 ### Changed
