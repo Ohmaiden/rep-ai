@@ -5,6 +5,24 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [Unreleased] — 2026-04-16
+
+### Added
+- Specific form feedback: the app now identifies *why* a rep had bad form, not just that it did
+  - Named issues detected: "Hips too low", "Arms too wide", "Head dropping", "Head too high", "Not going low enough", "Going too deep"
+  - Geometric classifier updated to collect a named issues list instead of a pass/fail boolean
+  - `MLFormClassifier.diagnoseIssues()` added so Android's TFLite path also gets specific issue labels via geometric analysis
+  - `PushUpAnalyzer` accumulates per-frame issue votes and stores the dominant issue(s) in each `RepResult`
+- Live form issue hint: form badge in workout screen now shows the specific issue in real time (e.g. "Hips too low" instead of "Fix Form")
+- Bad-rep flash now shows the specific reason (e.g. "Arms too wide — not counted")
+- Form Issues summary card on workout summary screen — aggregates issues by frequency (e.g. "Hips too low — 3 reps")
+- Per-rep breakdown on summary screen now shows the specific issue per bad rep
+
+### Fixed
+- Bad-rep flash was never showing due to a `< Duration.zero` comparison bug — fixed to 3-second display window
+
+---
+
 ## [Unreleased] — 2026-04-15 (patch 2)
 
 ### Fixed
