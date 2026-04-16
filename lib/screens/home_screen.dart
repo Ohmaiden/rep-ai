@@ -279,16 +279,9 @@ class HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 icon: const Icon(
-                                    Icons.menu_book_rounded),
-                                color: theme.textTheme.bodyMedium?.color,
-                                tooltip: 'Exercise guide',
-                              ),
-                              IconButton(
-                                onPressed: _showHelp,
-                                icon: const Icon(
                                     Icons.help_outline_rounded),
                                 color: theme.textTheme.bodyMedium?.color,
-                                tooltip: 'Help',
+                                tooltip: 'Exercise guide',
                               ),
                             ],
                           ),

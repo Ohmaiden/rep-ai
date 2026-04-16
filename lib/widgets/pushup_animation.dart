@@ -1,10 +1,10 @@
 /// Push-Up Animation Widget
 /// =========================
-/// Animated side-view stick-figure demonstrating each push-up variation.
-/// Uses CustomPainter to draw the figure and AnimationController to loop
-/// smoothly between the top (arms extended) and bottom (arms bent) positions.
+/// Animated side-view stick-figure demonstrating each push-up variation,
+/// with per-variation form callout labels and a subtle camera placement
+/// indicator showing where to position the phone.
 ///
-/// Nothing is recorded or stored — this is purely a visual guide.
+/// Uses CustomPainter + AnimationController. Nothing is recorded or stored.
 library;
 
 import 'package:flutter/material.dart';
@@ -74,18 +74,18 @@ extension PushUpVariationInfo on PushUpVariation {
 }
 
 // ── Pose data (normalised 0–1 coords, origin = top-left) ─────────────────────
-// Ground line at y = 0.78.  All poses are in the same coordinate space so
+// Ground line at y = 0.78.  All poses share the same coordinate space so
 // the painter can lerp directly between them.
 
 class _Pose {
-  final Offset hand;      // hand contact with floor
-  final Offset elbow;     // elbow joint
-  final Offset shoulder;  // shoulder joint
-  final Offset hip;       // hip joint
-  final Offset knee;      // knee joint
-  final Offset ankle;     // foot/ankle contact (or elevated for decline)
-  final Offset head;      // centre of head circle
-  final double headR;     // head radius (fraction of canvas height)
+  final Offset hand;
+  final Offset elbow;
+  final Offset shoulder;
+  final Offset hip;
+  final Offset knee;
+  final Offset ankle;
+  final Offset head;
+  final double headR;
 
   const _Pose({
     required this.hand,
@@ -111,9 +111,6 @@ class _Pose {
 }
 
 const double _kG = 0.78; // ground Y
-
-// Pose definitions — person facing right, side view.
-// TOP  = arms fully extended.   BOTTOM = arms bent ~90°.
 
 const _kTopStandard = _Pose(
   hand:     Offset(0.76, _kG),
@@ -145,7 +142,7 @@ const _kTopWide = _Pose(
 );
 const _kBotWide = _Pose(
   hand:     Offset(0.83, _kG),
-  elbow:    Offset(0.79, 0.71),  // elbows flare out for wide grip
+  elbow:    Offset(0.79, 0.71),
   shoulder: Offset(0.66, 0.67),
   hip:      Offset(0.37, 0.67),
   knee:     Offset(0.28, 0.73),
@@ -154,7 +151,7 @@ const _kBotWide = _Pose(
 );
 
 const _kTopDiamond = _Pose(
-  hand:     Offset(0.66, _kG),   // hands close under chest
+  hand:     Offset(0.66, _kG),
   elbow:    Offset(0.63, 0.60),
   shoulder: Offset(0.66, 0.47),
   hip:      Offset(0.37, 0.47),
@@ -164,7 +161,7 @@ const _kTopDiamond = _Pose(
 );
 const _kBotDiamond = _Pose(
   hand:     Offset(0.66, _kG),
-  elbow:    Offset(0.52, 0.73),  // elbows flare wide
+  elbow:    Offset(0.52, 0.73),
   shoulder: Offset(0.66, 0.67),
   hip:      Offset(0.37, 0.67),
   knee:     Offset(0.28, 0.73),
@@ -176,9 +173,9 @@ const _kTopKnee = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.73, 0.62),
   shoulder: Offset(0.66, 0.50),
-  hip:      Offset(0.42, 0.53),  // body at slight angle, knees as pivot
-  knee:     Offset(0.27, _kG),   // KNEE ON GROUND
-  ankle:    Offset(0.20, 0.69),  // feet raised
+  hip:      Offset(0.42, 0.53),
+  knee:     Offset(0.27, _kG),
+  ankle:    Offset(0.20, 0.69),
   head:     Offset(0.73, 0.40),
 );
 const _kBotKnee = _Pose(
@@ -186,8 +183,8 @@ const _kBotKnee = _Pose(
   elbow:    Offset(0.61, 0.74),
   shoulder: Offset(0.66, 0.68),
   hip:      Offset(0.42, 0.71),
-  knee:     Offset(0.27, _kG),   // stays on ground
-  ankle:    Offset(0.20, 0.69),  // stays raised
+  knee:     Offset(0.27, _kG),
+  ankle:    Offset(0.20, 0.69),
   head:     Offset(0.73, 0.58),
 );
 
@@ -195,38 +192,38 @@ const _kTopPike = _Pose(
   hand:     Offset(0.42, _kG),
   elbow:    Offset(0.41, 0.58),
   shoulder: Offset(0.44, 0.47),
-  hip:      Offset(0.50, 0.22),  // hips HIGH — apex of the V
+  hip:      Offset(0.50, 0.22),
   knee:     Offset(0.54, 0.49),
   ankle:    Offset(0.57, _kG),
-  head:     Offset(0.38, 0.60),  // head between/below arms, looking down
+  head:     Offset(0.38, 0.60),
 );
 const _kBotPike = _Pose(
   hand:     Offset(0.42, _kG),
-  elbow:    Offset(0.35, 0.70),  // elbows bend — head goes toward floor
+  elbow:    Offset(0.35, 0.70),
   shoulder: Offset(0.44, 0.62),
-  hip:      Offset(0.50, 0.34),  // hips drop somewhat
+  hip:      Offset(0.50, 0.34),
   knee:     Offset(0.54, 0.53),
   ankle:    Offset(0.57, _kG),
-  head:     Offset(0.38, 0.74),  // close to ground
+  head:     Offset(0.38, 0.74),
 );
 
 const _kTopDecline = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.74, 0.62),
   shoulder: Offset(0.67, 0.52),
-  hip:      Offset(0.42, 0.39),  // body angled (feet up, head down)
+  hip:      Offset(0.42, 0.39),
   knee:     Offset(0.30, 0.28),
-  ankle:    Offset(0.20, 0.23),  // ELEVATED
-  head:     Offset(0.74, 0.62),  // head is lower than shoulder in decline
+  ankle:    Offset(0.20, 0.23),
+  head:     Offset(0.74, 0.62),
 );
 const _kBotDecline = _Pose(
   hand:     Offset(0.76, _kG),
   elbow:    Offset(0.63, 0.73),
   shoulder: Offset(0.67, 0.70),
   hip:      Offset(0.42, 0.53),
-  knee:     Offset(0.30, 0.28),  // stays elevated
-  ankle:    Offset(0.20, 0.23),  // stays elevated
-  head:     Offset(0.74, 0.76),  // near floor
+  knee:     Offset(0.30, 0.28),
+  ankle:    Offset(0.20, 0.23),
+  head:     Offset(0.74, 0.76),
 );
 
 ({_Pose top, _Pose bottom, bool showPlatform, bool kneeOnGround})
@@ -253,6 +250,53 @@ const _kBotDecline = _Pose(
   }
 }
 
+// ── Callout annotations ───────────────────────────────────────────────────────
+// Each variation ships 2 callout labels that annotate key form points directly
+// on the canvas. anchor = the body-part position (normalised); label = where
+// the pill is centred (normalised).
+
+class _CalloutDef {
+  final String text;
+  final Offset anchor; // body-part to highlight
+  final Offset label;  // pill centre
+  const _CalloutDef({required this.text, required this.anchor, required this.label});
+}
+
+List<_CalloutDef> _calloutsFor(PushUpVariation v) {
+  switch (v) {
+    case PushUpVariation.standard:
+      return [
+        _CalloutDef(text: 'Flat back',      anchor: const Offset(0.51, 0.47), label: const Offset(0.24, 0.18)),
+        _CalloutDef(text: 'Shoulder-width', anchor: const Offset(0.76, _kG),  label: const Offset(0.70, 0.90)),
+      ];
+    case PushUpVariation.wide:
+      return [
+        _CalloutDef(text: 'Arms wide',  anchor: const Offset(0.83, _kG),  label: const Offset(0.76, 0.90)),
+        _CalloutDef(text: 'Hips level', anchor: const Offset(0.37, 0.47), label: const Offset(0.24, 0.18)),
+      ];
+    case PushUpVariation.diamond:
+      return [
+        _CalloutDef(text: 'Hands close', anchor: const Offset(0.66, _kG),  label: const Offset(0.57, 0.90)),
+        _CalloutDef(text: 'Elbows back', anchor: const Offset(0.63, 0.55), label: const Offset(0.24, 0.28)),
+      ];
+    case PushUpVariation.knee:
+      return [
+        _CalloutDef(text: 'Knee pivot',    anchor: const Offset(0.27, _kG),  label: const Offset(0.24, 0.90)),
+        _CalloutDef(text: 'Body straight', anchor: const Offset(0.54, 0.51), label: const Offset(0.24, 0.18)),
+      ];
+    case PushUpVariation.pike:
+      return [
+        _CalloutDef(text: 'Hips high', anchor: const Offset(0.50, 0.22), label: const Offset(0.63, 0.10)),
+        _CalloutDef(text: 'Head down', anchor: const Offset(0.38, 0.60), label: const Offset(0.26, 0.52)),
+      ];
+    case PushUpVariation.decline:
+      return [
+        _CalloutDef(text: 'Feet up',    anchor: const Offset(0.20, 0.23), label: const Offset(0.27, 0.07)),
+        _CalloutDef(text: 'Upper chest', anchor: const Offset(0.67, 0.52), label: const Offset(0.66, 0.13)),
+      ];
+  }
+}
+
 // ── Animation widget ──────────────────────────────────────────────────────────
 
 class PushUpAnimationWidget extends StatefulWidget {
@@ -273,11 +317,10 @@ class _PushUpAnimationWidgetState extends State<PushUpAnimationWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
 
-  // Durations for each phase
-  static const _downMs  = 1200; // top → bottom
-  static const _holdBot =  600; // pause at bottom
-  static const _upMs    = 1000; // bottom → top
-  static const _holdTop = 1200; // pause at top
+  static const _downMs  = 1200;
+  static const _holdBot =  600;
+  static const _upMs    = 1000;
+  static const _holdTop = 1200;
   static const _cycleMs = _downMs + _holdBot + _upMs + _holdTop;
 
   @override
@@ -297,42 +340,58 @@ class _PushUpAnimationWidgetState extends State<PushUpAnimationWidget>
 
   /// Maps controller value (0→1 linear) to pose progress (0=top, 1=bottom).
   double _progress(double t) {
-    // Phase boundaries in [0,1]
-    const pDownEnd   = _downMs  / _cycleMs;
+    const pDownEnd    = _downMs  / _cycleMs;
     const pHoldBotEnd = (_downMs + _holdBot) / _cycleMs;
-    const pUpEnd     = (_downMs + _holdBot + _upMs) / _cycleMs;
+    const pUpEnd      = (_downMs + _holdBot + _upMs) / _cycleMs;
 
     if (t < pDownEnd) {
-      // Going down
       return Curves.easeInOut.transform(t / pDownEnd);
     } else if (t < pHoldBotEnd) {
-      // Hold at bottom
       return 1.0;
     } else if (t < pUpEnd) {
-      // Going up
       return 1.0 - Curves.easeInOut.transform((t - pHoldBotEnd) / (_upMs / _cycleMs));
     } else {
-      // Hold at top
       return 0.0;
+    }
+  }
+
+  /// Callout labels fade to 60 % opacity while the figure is moving and
+  /// return to full opacity when holding at the top (start) position.
+  double _calloutOpacity(double t) {
+    const pDownEnd    = _downMs  / _cycleMs;
+    const pHoldBotEnd = (_downMs + _holdBot) / _cycleMs;
+    const pUpEnd      = (_downMs + _holdBot + _upMs) / _cycleMs;
+
+    if (t < pDownEnd) {
+      // Fading out as figure descends
+      return 1.0 - (t / pDownEnd) * 0.4;
+    } else if (t < pHoldBotEnd) {
+      return 0.6;
+    } else if (t < pUpEnd) {
+      // Fading back in as figure rises
+      return 0.6 + 0.4 * ((t - pHoldBotEnd) / (_upMs / _cycleMs));
+    } else {
+      return 1.0;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF93C5FD) // lighter blue in dark mode
+        ? const Color(0xFF93C5FD)
         : const Color(0xFF2563EB);
     final groundColor = Theme.of(context).dividerColor;
 
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) {
-        final progress = _progress(_ctrl.value);
+        final t = _ctrl.value;
         return CustomPaint(
           size: Size(double.infinity, widget.height),
           painter: _PushUpPainter(
             variation: widget.variation,
-            progress: progress,
+            progress: _progress(t),
+            calloutOpacity: _calloutOpacity(t),
             color: color,
             groundColor: groundColor,
           ),
@@ -346,13 +405,15 @@ class _PushUpAnimationWidgetState extends State<PushUpAnimationWidget>
 
 class _PushUpPainter extends CustomPainter {
   final PushUpVariation variation;
-  final double progress; // 0 = top (arms extended), 1 = bottom (arms bent)
+  final double progress;        // 0 = top (extended), 1 = bottom (bent)
+  final double calloutOpacity;  // 0.6–1.0 driven by animation phase
   final Color color;
   final Color groundColor;
 
   const _PushUpPainter({
     required this.variation,
     required this.progress,
+    required this.calloutOpacity,
     required this.color,
     required this.groundColor,
   });
@@ -362,7 +423,6 @@ class _PushUpPainter extends CustomPainter {
     final data = _posesFor(variation);
     final pose = data.top.lerp(data.bottom, progress);
 
-    // Scale helper: normalised → canvas pixel
     Offset s(Offset o) => Offset(o.dx * size.width, o.dy * size.height);
 
     final bodyPaint = Paint()
@@ -392,14 +452,14 @@ class _PushUpPainter extends CustomPainter {
       ..color = color.withValues(alpha: 0.18)
       ..style = PaintingStyle.fill;
 
-    // Ground line
+    // ── Ground line ──────────────────────────────────────────────────────────
     canvas.drawLine(
       Offset(0, _kG * size.height),
       Offset(size.width, _kG * size.height),
       groundPaint,
     );
 
-    // Decline platform (small box under elevated feet)
+    // ── Decline platform ─────────────────────────────────────────────────────
     if (data.showPlatform) {
       final px = pose.ankle.dx * size.width;
       final py = _kG * size.height;
@@ -421,10 +481,12 @@ class _PushUpPainter extends CustomPainter {
       canvas.drawRRect(rRect, borderPaint);
     }
 
-    // Knee contact dot (for knee push-up)
+    // ── Knee contact dot ─────────────────────────────────────────────────────
     if (data.kneeOnGround) {
       canvas.drawCircle(s(pose.knee), size.width * 0.025, dotPaint);
     }
+
+    // ── Stick figure ─────────────────────────────────────────────────────────
 
     // Leg: hip → knee → ankle
     final legPath = Path()
@@ -446,17 +508,145 @@ class _PushUpPainter extends CustomPainter {
     // Hand contact dot
     canvas.drawCircle(s(pose.hand), size.width * 0.022, dotPaint);
 
-    // Head: filled circle + outline
+    // Head
     final headPx = s(pose.head);
     final headRPx = pose.headR * size.height;
     canvas.drawCircle(headPx, headRPx, headFill);
     canvas.drawCircle(headPx, headRPx, bodyPaint..style = PaintingStyle.stroke);
-    bodyPaint.style = PaintingStyle.stroke; // restore
+    bodyPaint.style = PaintingStyle.stroke;
+
+    // ── Phone placement indicator ────────────────────────────────────────────
+    // A small phone outline on the left edge at chest height, showing where
+    // the user should position their camera.
+    _drawPhoneIndicator(canvas, size);
+
+    // ── Callout labels ───────────────────────────────────────────────────────
+    for (final c in _calloutsFor(variation)) {
+      _drawCallout(canvas, size, c.text, c.anchor, c.label);
+    }
+  }
+
+  /// Draws a tiny phone silhouette on the left edge at chest height.
+  void _drawPhoneIndicator(Canvas canvas, Size size) {
+    final cx = size.width * 0.055;
+    final cy = size.height * 0.50;
+    final pw = (size.width * 0.036).clamp(8.0, 14.0);
+    final ph = pw * 1.9;
+
+    final fillPaint = Paint()
+      ..color = color.withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final phoneRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy), width: pw, height: ph),
+      Radius.circular(pw * 0.22),
+    );
+    canvas.drawRRect(phoneRect, fillPaint);
+    canvas.drawRRect(phoneRect, strokePaint);
+
+    // Camera lens dot
+    canvas.drawCircle(
+      Offset(cx, cy - ph * 0.33),
+      pw * 0.13,
+      Paint()..color = color.withValues(alpha: 0.30)..style = PaintingStyle.fill,
+    );
+
+    // "Cam" micro-label
+    final fontSize = (size.height * 0.062).clamp(7.5, 10.0);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: 'Cam',
+        style: TextStyle(
+          color: color.withValues(alpha: 0.40),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy + ph / 2 + 2));
+  }
+
+  /// Draws a pill-shaped callout label with a short leader line to the
+  /// highlighted body part.
+  void _drawCallout(
+    Canvas canvas,
+    Size size,
+    String text,
+    Offset anchorNorm,
+    Offset labelNorm,
+  ) {
+    final anchorPx = Offset(anchorNorm.dx * size.width, anchorNorm.dy * size.height);
+    final labelPx  = Offset(labelNorm.dx  * size.width, labelNorm.dy  * size.height);
+
+    final alpha = calloutOpacity;
+    final fontSize = (size.height * 0.072).clamp(9.0, 12.5);
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: alpha),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          height: 1.0,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width * 0.42);
+
+    const hPad = 7.0;
+    const vPad = 4.5;
+    final pillW = tp.width + hPad * 2;
+    final pillH = tp.height + vPad * 2;
+
+    final pillRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: labelPx, width: pillW, height: pillH),
+      const Radius.circular(7),
+    );
+
+    // Anchor dot
+    canvas.drawCircle(
+      anchorPx,
+      (size.width * 0.014).clamp(2.5, 5.0),
+      Paint()
+        ..color = color.withValues(alpha: alpha * 0.55)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Leader line (very subtle — just a visual connector)
+    canvas.drawLine(
+      anchorPx,
+      labelPx,
+      Paint()
+        ..color = color.withValues(alpha: alpha * 0.22)
+        ..strokeWidth = 0.9
+        ..style = PaintingStyle.stroke,
+    );
+
+    // Pill background
+    canvas.drawRRect(
+      pillRect,
+      Paint()
+        ..color = color.withValues(alpha: alpha * 0.88)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Text
+    tp.paint(
+      canvas,
+      Offset(labelPx.dx - tp.width / 2, labelPx.dy - tp.height / 2),
+    );
   }
 
   @override
   bool shouldRepaint(_PushUpPainter old) =>
       old.progress != progress ||
+      old.calloutOpacity != calloutOpacity ||
       old.variation != variation ||
       old.color != color;
 }
