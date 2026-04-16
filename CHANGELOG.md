@@ -5,6 +5,14 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Exercise Guide swipe fix — build 70)
+
+### Fixed
+- Swiping the animation in the Exercise Guide now reliably changes the variation: moved the PageView outside the outer vertical ListView so horizontal swipes are never ambiguous and always handled by the PageView
+- Added animated page-indicator dots below the animation so it is visually clear the card is swipeable
+
+---
+
 ## [2.4.0] — 2026-04-16 (Pike elbow direction fix — build 69)
 
 ### Changed

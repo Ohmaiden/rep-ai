@@ -1,8 +1,11 @@
 /// Exercise Guide Screen
 /// =====================
 /// Animated reference guides for all push-up variations, plus camera
-/// setup tips. Reachable from the ? icon on the home screen.
-/// Variations can be browsed by tapping the chips OR swiping the animation.
+/// setup tips. Reachable from the dumbbell icon on the home screen.
+///
+/// Layout: chips + PageView live in a fixed Column at the top so horizontal
+/// swipes on the animation are never consumed by an outer vertical ListView.
+/// Key-points card and camera tips scroll in an Expanded ListView below.
 library;
 
 import 'package:flutter/material.dart';
@@ -58,22 +61,26 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Variation section header ─────────────────────────────────
-              _SectionHeader(
-                icon: Icons.fitness_center_rounded,
-                title: 'Push-Up Variations',
-              ),
-              const SizedBox(height: 12),
 
-              // ── Chip selector ────────────────────────────────────────────
+              // ── Variation header ───────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: _SectionHeader(
+                  icon: Icons.fitness_center_rounded,
+                  title: 'Push-Up Variations',
+                ),
+              ),
+
+              // ── Chip selector ──────────────────────────────────────────────
               SizedBox(
                 height: 36,
                 child: ListView.builder(
                   controller: _chipScrollController,
                   scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: _variations.length,
                   itemBuilder: (context, i) {
                     final selected = i == _selectedIndex;
@@ -112,89 +119,127 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // ── Animation — swipeable PageView ───────────────────────────
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 248, // 200 animation + 24+24 vertical padding
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: _variations.length,
-                    onPageChanged: (i) => setState(() => _selectedIndex = i),
-                    itemBuilder: (ctx, i) => Container(
-                      color: isDark
-                          ? const Color(0xFF1E293B)
-                          : const Color(0xFFF1F5FF),
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: PushUpAnimationWidget(
-                        variation: _variations[i],
-                        height: 200,
+              // ── Animation PageView ─────────────────────────────────────────
+              // Kept outside any vertical scrollable so horizontal swipes are
+              // never ambiguous and always handled by the PageView.
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: 248,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _variations.length,
+                      onPageChanged: (i) {
+                        setState(() => _selectedIndex = i);
+                      },
+                      itemBuilder: (ctx, i) => Container(
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF1F5FF),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: PushUpAnimationWidget(
+                          variation: _variations[i],
+                          height: 200,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // ── Key points card ──────────────────────────────────────────
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, anim) => FadeTransition(
-                  opacity: anim,
-                  child: child,
+              // ── Page-indicator dots ────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_variations.length, (i) {
+                    final active = i == _selectedIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 20 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? const Color(0xFF2563EB)
+                            : theme.dividerColor.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
                 ),
-                child: Card(
-                  key: ValueKey(_selected),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selected.displayName,
-                          style: theme.textTheme.titleMedium,
+              ),
+
+              // ── Scrollable lower section ───────────────────────────────────
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  children: [
+
+                    // Key points card
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: child,
+                      ),
+                      child: Card(
+                        key: ValueKey(_selected),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selected.displayName,
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 12),
+                              ..._selected.keyPoints.map(
+                                (point) => _BulletItem(text: point),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        ..._selected.keyPoints.map(
-                          (point) => _BulletItem(text: point),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-              // ── Camera setup ─────────────────────────────────────────────
-              _SectionHeader(
-                icon: Icons.camera_alt_rounded,
-                title: 'Best setup for tracking',
-              ),
-              const SizedBox(height: 12),
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _BulletItem(text: 'Prop your phone at chest height.'),
-                      _BulletItem(
-                          text:
-                              'Make sure your full body is visible in the camera.'),
-                      _BulletItem(
-                          text:
-                              'Side view gives the best results but any angle works.'),
-                      _BulletItem(
-                          text:
-                              'Keep about 1 to 2 metres distance from the phone.'),
-                      _BulletItem(text: 'Good lighting helps detection.'),
-                    ],
-                  ),
+                    // Camera setup
+                    _SectionHeader(
+                      icon: Icons.camera_alt_rounded,
+                      title: 'Best setup for tracking',
+                    ),
+                    const SizedBox(height: 12),
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _BulletItem(text: 'Prop your phone at chest height.'),
+                            _BulletItem(
+                                text:
+                                    'Make sure your full body is visible in the camera.'),
+                            _BulletItem(
+                                text:
+                                    'Side view gives the best results but any angle works.'),
+                            _BulletItem(
+                                text:
+                                    'Keep about 1 to 2 metres distance from the phone.'),
+                            _BulletItem(text: 'Good lighting helps detection.'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
