@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 import '../services/workout_state.dart';
@@ -323,14 +322,6 @@ class HomeScreenState extends State<HomeScreen> {
                             child: _buildStatsRow(),
                           ),
                         ),
-
-                      // Workout buttons
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                          child: _buildWorkoutButtons(context),
-                        ),
-                      ),
 
                       // Recent workouts header
                       SliverToBoxAdapter(
@@ -1219,100 +1210,6 @@ class HomeScreenState extends State<HomeScreen> {
                 fontSize: 16, fontWeight: FontWeight.w800)),
         Text(label,
             style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-
-  // ── Workout Buttons ───────────────────────────────────────────────────
-
-  Future<void> _launchWorkout({String exercise = 'Push-ups', bool setup = false}) async {
-    // Request camera permission before navigating — so iOS shows the dialog
-    final status = await Permission.camera.request();
-    if (!mounted) return;
-    if (status.isPermanentlyDenied) {
-      // User has permanently denied — show a dialog pointing them to settings
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Camera Access Required'),
-          content: const Text(
-            'Rep AI needs camera access to count your reps.\n\n'
-            'Go to: Settings → Privacy & Security → Camera → Rep AI, then toggle it on.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                openAppSettings();
-              },
-              child: const Text('Open Settings'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-    context.read<WorkoutState>().startSession(exercise: exercise);
-    if (setup) {
-      Navigator.pushNamed(context, '/setup').then((_) => _loadData());
-    } else {
-      Navigator.pushNamed(context, '/workout').then((_) => _loadData());
-    }
-  }
-
-  Widget _buildWorkoutButtons(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: () => _launchWorkout(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.play_arrow_rounded, size: 24),
-                SizedBox(width: 8),
-                Text('Quick Workout',
-                    style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton(
-            onPressed: () => _launchWorkout(setup: true),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF2563EB),
-              side: const BorderSide(color: Color(0xFF2563EB)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.tune_rounded, size: 22),
-                SizedBox(width: 8),
-                Text('Custom Workout',
-                    style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }

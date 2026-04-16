@@ -155,7 +155,7 @@ const _kTopWide = _Pose(
 );
 const _kBotWide = _Pose(
   hand:     Offset(0.80, _kG),
-  elbow:    Offset(0.78, 0.66),   // flares outward (forward) — wide elbow flare vs standard draw-back
+  elbow:    Offset(0.80, 0.73),   // elbow above hand (forearm vertical), below shoulder (upper arm horizontal) — points DOWN
   shoulder: Offset(0.66, 0.70),   // drops slightly lower than standard (wider ROM)
   hip:      Offset(0.37, 0.75),   // on plank line shoulder(0.66,0.70)→ankle(0.18,0.78)
   knee:     Offset(0.28, 0.76),

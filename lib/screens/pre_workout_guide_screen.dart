@@ -1,12 +1,14 @@
 /// Pre-Workout Guide Screen
 /// ========================
-/// Shown before every workout session so the user can see exactly how to
-/// perform each push-up variation before the camera starts.
+/// Shown before every workout session. Layout mirrors the Exercise Guide:
+/// chips + PageView live outside any vertical ListView so horizontal swipes
+/// are never consumed by an outer scroll. The whole screen is also wrapped
+/// in a translucent GestureDetector so swiping anywhere changes the variation.
 ///
-/// • Animated side-view diagram for the selected variation
-/// • Swipeable variation chips to browse all 6 guides
-/// • Key form points listed below the animation
-/// • "Let's Go" button starts the actual workout
+/// • Swipeable animated diagrams for all 6 variations
+/// • Page-indicator dots
+/// • Key form points in a scrollable card below
+/// • "Let's Go" button fixed at the bottom
 library;
 
 import 'package:flutter/material.dart';
@@ -16,7 +18,6 @@ import '../widgets/pushup_animation.dart';
 
 class PreWorkoutGuideScreen extends StatefulWidget {
   /// True when launched from the custom-workout setup flow.
-  /// The "Let's Go" button will start a custom session instead of a free one.
   final bool isCustom;
 
   const PreWorkoutGuideScreen({super.key, this.isCustom = false});
@@ -26,7 +27,36 @@ class PreWorkoutGuideScreen extends StatefulWidget {
 }
 
 class _PreWorkoutGuideScreenState extends State<PreWorkoutGuideScreen> {
-  PushUpVariation _selected = PushUpVariation.standard;
+  static final _variations = PushUpVariation.values;
+
+  int _selectedIndex = 0;
+  PushUpVariation get _selected => _variations[_selectedIndex];
+
+  late final PageController _pageController;
+  final _chipScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _chipScrollController.dispose();
+    super.dispose();
+  }
+
+  void _selectVariation(int index) {
+    if (index == _selectedIndex) return;
+    setState(() => _selectedIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +64,6 @@ class _PreWorkoutGuideScreenState extends State<PreWorkoutGuideScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.textTheme.headlineLarge?.color ?? Colors.black;
     final subtextColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
-    final surfaceColor = theme.cardTheme.color ?? theme.colorScheme.surface;
 
     return Scaffold(
       appBar: AppBar(
@@ -42,202 +71,251 @@ class _PreWorkoutGuideScreenState extends State<PreWorkoutGuideScreen> {
         centerTitle: false,
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    children: [
-                      // Header blurb
-                      Text(
-                        'Good form = more reps counted.',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Watch the guide below, then start when ready.',
-                        style: TextStyle(fontSize: 14, color: subtextColor),
-                      ),
-                      const SizedBox(height: 20),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (details) {
+            final v = details.primaryVelocity ?? 0;
+            if (v < -300) {
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOut,
+              );
+            } else if (v > 300) {
+              _pageController.previousPage(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOut,
+              );
+            }
+          },
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
 
-                      // Animation card
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF1E293B)
-                              : const Color(0xFFF1F5FF),
-                          borderRadius: BorderRadius.circular(16),
+                  // ── Header blurb ───────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Good form = more reps counted.',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Column(
-                          children: [
-                            PushUpAnimationWidget(
-                              key: ValueKey(_selected),
-                              variation: _selected,
+                        const SizedBox(height: 2),
+                        Text(
+                          'Swipe to browse variations, then tap Let\'s Go.',
+                          style: TextStyle(fontSize: 14, color: subtextColor),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Chip selector ──────────────────────────────────────
+                  SizedBox(
+                    height: 36,
+                    child: ListView.builder(
+                      controller: _chipScrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _variations.length,
+                      itemBuilder: (context, i) {
+                        final selected = i == _selectedIndex;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () => _selectVariation(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? const Color(0xFF2563EB)
+                                    : (isDark
+                                        ? const Color(0xFF1E293B)
+                                        : const Color(0xFFF1F5F9)),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selected
+                                      ? const Color(0xFF2563EB)
+                                      : theme.dividerColor
+                                          .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                _variations[i].displayName,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      selected ? Colors.white : subtextColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Animation PageView ─────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        height: 230,
+                        child: PageView.builder(
+                          controller: _pageController,
+                          itemCount: _variations.length,
+                          onPageChanged: (i) =>
+                              setState(() => _selectedIndex = i),
+                          itemBuilder: (ctx, i) => Container(
+                            color: isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFF1F5FF),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 20),
+                            child: PushUpAnimationWidget(
+                              variation: _variations[i],
                               height: 190,
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _selected.displayName,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Variation chips
-                      SizedBox(
-                        height: 36,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: PushUpVariation.values.map((v) {
-                            final selected = v == _selected;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _selected = v),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? const Color(0xFF2563EB)
-                                        : (isDark
-                                            ? const Color(0xFF1E293B)
-                                            : const Color(0xFFF1F5F9)),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: selected
-                                          ? const Color(0xFF2563EB)
-                                          : theme.dividerColor
-                                              .withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    v.displayName,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: selected
-                                          ? Colors.white
-                                          : subtextColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Key points
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.dividerColor.withValues(alpha: 0.2),
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Key points',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF2563EB),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            ..._selected.keyPoints.map(
-                              (point) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 5, right: 10),
-                                      child: Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF2563EB),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        point,
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: textColor,
-                                            height: 1.4),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Let's Go button
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _startWorkout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Let's Go",
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, size: 20),
-                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
+
+                  // ── Page-indicator dots ────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_variations.length, (i) {
+                        final active = i == _selectedIndex;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: active ? 20 : 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: active
+                                ? const Color(0xFF2563EB)
+                                : theme.dividerColor.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+
+                  // ── Key points (scrollable) ────────────────────────────
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          transitionBuilder: (child, anim) => FadeTransition(
+                            opacity: anim,
+                            child: child,
+                          ),
+                          child: Card(
+                            key: ValueKey(_selected),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _selected.displayName,
+                                    style: theme.textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ..._selected.keyPoints.map(
+                                    (point) => Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 5, right: 10),
+                                            child: Container(
+                                              width: 6,
+                                              height: 6,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFF2563EB),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Text(
+                                              point,
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: textColor,
+                                                  height: 1.4),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Let's Go button ────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _startWorkout,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Let's Go",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward_rounded, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -249,8 +327,6 @@ class _PreWorkoutGuideScreenState extends State<PreWorkoutGuideScreen> {
     if (!widget.isCustom) {
       context.read<WorkoutState>().startSession(exercise: 'Push-ups');
     }
-    // Custom session was already started by WorkoutSetupScreen before
-    // navigating here — just push the workout screen.
     Navigator.pushReplacementNamed(context, '/workout');
   }
 }

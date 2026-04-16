@@ -5,6 +5,22 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Workout hub, guide polish, wide-elbow fix — build 71)
+
+### Changed
+- Wide grip bottom elbow fixed: was pointing upward (y=0.66, above shoulder y=0.70); now sits directly above the hand with a vertical forearm and horizontal upper arm (y=0.73, below shoulder), correctly pointing toward the ground
+- Exercise Guide now responds to horizontal swipes anywhere on the screen, not only on the animation card (translucent screen-level GestureDetector)
+- Quick Workout and Custom Workout buttons moved from the Home screen to the Workout tab, which now shows a dedicated hub screen
+- Pre-workout animation guide (shown before every session) redesigned to match the Exercise Guide: PageView outside vertical scroll, animated dot indicators, swipe-anywhere, AnimatedSwitcher for the key-points card
+
+### Technical
+- New `WorkoutHubScreen` added; wired into `MainShell` `IndexedStack` as tab 1
+- `_stackIndex` in `MainShell` is now a direct 1-to-1 mapping (simplified from the previous offset-based approach)
+- Camera permission request moved from `HomeScreen._launchWorkout` to `WorkoutHubScreen`
+- `HomeScreen._launchWorkout` and `_buildWorkoutButtons` removed
+
+---
+
 ## [2.4.0] — 2026-04-16 (Exercise Guide swipe fix — build 70)
 
 ### Fixed

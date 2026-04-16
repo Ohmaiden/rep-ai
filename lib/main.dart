@@ -18,6 +18,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/workout_setup_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/pre_workout_guide_screen.dart';
+import 'screens/workout_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,8 +113,8 @@ class RepCounterApp extends StatelessWidget {
 }
 
 // ── Main Shell — persistent bottom nav ─────────────────────────────────────
-// Tab indices: 0=Home, 1=Workout (full-screen push), 2=History, 3=Settings
-// IndexedStack contains [Home, History, Settings] → mapped indices [0,2,3]
+// Tab indices: 0=Home, 1=Workout, 2=History, 3=Settings
+// All four tabs are in the IndexedStack; _stackIndex = _selectedIndex directly.
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -123,41 +124,21 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  // 0=Home, 2=History, 3=Settings  (1=Workout is full-screen, no persistent state)
   int _selectedIndex = 0;
 
-  // Allows re-triggering a fresh DB load every time the History tab is opened
-  // (the screen is kept alive inside the IndexedStack, so initState only fires
-  // once — without this the list can look stale until the user pulls to refresh).
   final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
-
-  // Same pattern for Home — reloading ensures the live weekly-goal calc
-  // (daily × active days) re-reads prefs whenever the user returns to Home.
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
 
-  // Maps nav bar tab index → IndexedStack index
-  // Tab 0=Home → stack 0, Tab 2=History → stack 1, Tab 3=Settings → stack 2
-  int get _stackIndex {
-    if (_selectedIndex == 2) return 1;
-    if (_selectedIndex == 3) return 2;
-    return 0;
-  }
+  // Direct 1-to-1 mapping now that all tabs are in the stack.
+  int get _stackIndex => _selectedIndex;
 
   void _onTap(int navIndex) {
-    if (navIndex == 1) {
-      // Workout — show the form guide first, which then starts the session
-      Navigator.pushNamed(context, '/guide');
-      return;
-    }
-    final tabIndex = navIndex > 1 ? navIndex : navIndex; // 0, 2, 3
-    if (tabIndex == 2) {
-      // Always reload history when the user opens that tab.
+    if (navIndex == 2) {
       _historyKey.currentState?.refresh();
-    } else if (tabIndex == 0) {
-      // Re-read prefs so the weekly goal reflects any Settings edits.
+    } else if (navIndex == 0) {
       _homeKey.currentState?.refresh();
     }
-    setState(() => _selectedIndex = tabIndex);
+    setState(() => _selectedIndex = navIndex);
   }
 
   @override
@@ -166,9 +147,6 @@ class _MainShellState extends State<MainShell> {
     final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     final navBg = isDark ? const Color(0xFF0F172A) : Colors.white;
     final navUnselected = isDark ? Colors.white54 : const Color(0xFF64748B);
-    // Show a subtle top border only on phones in light mode. On iPad we drop
-    // the border (and the default Material elevation shadow below) so the bar
-    // blends into the page.
     final navTopBorder =
         (isDark || isTablet) ? null : const Color(0xFFE2E8F0);
 
@@ -177,6 +155,7 @@ class _MainShellState extends State<MainShell> {
         index: _stackIndex,
         children: [
           HomeScreen(key: _homeKey),
+          const WorkoutHubScreen(),
           HistoryScreen(key: _historyKey),
           const SettingsScreen(),
         ],

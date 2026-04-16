@@ -58,7 +58,26 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Exercise Guide')),
-      body: Center(
+      body: GestureDetector(
+        // Translucent: inner widgets (PageView, chip ListView) still handle
+        // their own gestures; areas with no horizontal recogniser (key-points
+        // card, camera section, dots) also navigate on a horizontal swipe.
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final v = details.primaryVelocity ?? 0;
+          if (v < -300) {
+            _pageController.nextPage(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeInOut,
+            );
+          } else if (v > 300) {
+            _pageController.previousPage(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeInOut,
+            );
+          }
+        },
+        child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
           child: Column(
@@ -244,6 +263,8 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
               ),
             ],
           ),
+        ),
+        ),
         ),
       ),
     );
