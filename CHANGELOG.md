@@ -5,6 +5,15 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (UI and animation fixes — build 67)
+
+### Changed
+- Question mark button on the home screen now re-opens the startup / onboarding guide (swipeable walkthrough), not the exercise guide
+- Exercise guide gets its own dedicated button (dumbbell icon) next to the question mark in the home screen header
+- Pike push-up bottom elbow fixed: was incorrectly at the same height as the shoulder making the bend look inverted; now clearly points upward above both the shoulder and hand, creating a correct acute-angle bend
+
+---
+
 ## [2.4.0] — 2026-04-16 (Stretch rejection — build 66)
 
 ### Changed

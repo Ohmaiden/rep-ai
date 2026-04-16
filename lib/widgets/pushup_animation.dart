@@ -214,7 +214,7 @@ const _kTopPike = _Pose(
 );
 const _kBotPike = _Pose(
   hand:     Offset(0.67, _kG),
-  elbow:    Offset(0.70, 0.66),   // acute: elbow rises up and forward as figure lowers
+  elbow:    Offset(0.68, 0.59),   // acute: elbow points upward (above shoulder), forearm drops to floor
   shoulder: Offset(0.62, 0.68),
   hip:      Offset(0.50, 0.47),   // hips lower as figure descends
   knee:     Offset(0.41, 0.66),

@@ -193,36 +193,8 @@ class HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _resetAndShowOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_done', false);
-    if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/onboarding');
-  }
-
   void _showHelp() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Replay onboarding tutorial?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          'This will restart the setup walkthrough where you can update your fitness level and weekly goal.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _resetAndShowOnboarding();
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
+    Navigator.pushNamed(context, '/onboarding');
   }
 
 
@@ -279,9 +251,16 @@ class HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 icon: const Icon(
-                                    Icons.help_outline_rounded),
+                                    Icons.fitness_center_rounded),
                                 color: theme.textTheme.bodyMedium?.color,
                                 tooltip: 'Exercise guide',
+                              ),
+                              IconButton(
+                                onPressed: _showHelp,
+                                icon: const Icon(
+                                    Icons.help_outline_rounded),
+                                color: theme.textTheme.bodyMedium?.color,
+                                tooltip: 'App guide',
                               ),
                             ],
                           ),
