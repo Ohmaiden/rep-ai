@@ -5,7 +5,7 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
-## [Unreleased] — 2026-04-16
+## [2.2.0] — 2026-04-16
 
 ### Added
 - Specific form feedback: the app now identifies *why* a rep had bad form, not just that it did
