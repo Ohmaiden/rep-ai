@@ -265,7 +265,6 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
           ),
         ),
         ),
-        ),
       ),
     );
   }
