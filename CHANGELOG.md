@@ -5,6 +5,31 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16
+
+### Added
+- Pre-workout form guide shown before every session
+  - Animated side-view stick-figure demonstrating the push-up movement
+  - Smooth loop: extends at top → lowers → holds at bottom → rises
+  - Appears when the user taps the Workout tab or starts a custom workout
+  - "Let's Go" button starts the workout once the user is ready
+- Six animated variation guides: Standard, Wide Grip, Diamond, Knee, Pike, Decline
+  - Each has a distinct animation showing the different body position
+  - Swipeable chip selector to browse all variations
+  - Key form points listed below each animation
+- Exercise Guide screen updated with the same animated guides replacing static text
+  - Tabbed chip selector at the top to switch variations
+  - Animation card above the key points for each variation
+
+### Technical
+- New `PushUpAnimationWidget` (`lib/widgets/pushup_animation.dart`) — `CustomPainter`
+  with 6 sets of top/bottom pose keyframes; lerps between them on a smooth 4-phase
+  loop (down 1.2s → hold 0.6s → up 1.0s → hold 1.2s)
+- New `PreWorkoutGuideScreen` (`lib/screens/pre_workout_guide_screen.dart`)
+- Workout tab now routes to `/guide` before `/workout`; custom setup also routes through guide
+
+---
+
 ## [2.3.0] — 2026-04-16
 
 ### Added

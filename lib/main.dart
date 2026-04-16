@@ -17,6 +17,7 @@ import 'screens/history_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/workout_setup_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/pre_workout_guide_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +89,9 @@ class RepCounterApp extends StatelessWidget {
           },
           transitionDuration: const Duration(milliseconds: 300),
         );
+      case '/guide':
+        final isCustom = settings.arguments == true;
+        page = PreWorkoutGuideScreen(isCustom: isCustom);
       case '/onboarding':
         page = const OnboardingScreen();
       case '/setup':
@@ -141,9 +145,8 @@ class _MainShellState extends State<MainShell> {
 
   void _onTap(int navIndex) {
     if (navIndex == 1) {
-      // Workout — launch full-screen, don't update _selectedIndex
-      context.read<WorkoutState>().startSession(exercise: 'Push-ups');
-      Navigator.pushNamed(context, '/workout');
+      // Workout — show the form guide first, which then starts the session
+      Navigator.pushNamed(context, '/guide');
       return;
     }
     final tabIndex = navIndex > 1 ? navIndex : navIndex; // 0, 2, 3
