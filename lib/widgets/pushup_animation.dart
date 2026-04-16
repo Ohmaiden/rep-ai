@@ -140,9 +140,13 @@ const _kBotStandard = _Pose(
 );
 
 // ── Wide ──────────────────────────────────────────────────────────────────────
+// Hand is at x=0.80 (vs standard 0.76) — clearly wider without making the arm
+// look unrealistically long.  At the bottom the elbow flares FORWARD/OUTWARD
+// (wide push-up elbows flare to the sides, which in side-view appears as the
+// elbow going ahead of the shoulder rather than drawing back like standard).
 const _kTopWide = _Pose(
-  hand:     Offset(0.83, _kG),
-  elbow:    Offset(0.75, 0.64),
+  hand:     Offset(0.80, _kG),    // wider than standard (0.76) but not extreme
+  elbow:    Offset(0.74, 0.64),   // collinear on shoulder(0.66,0.47)→hand(0.80,0.78) line
   shoulder: Offset(0.66, 0.47),
   hip:      Offset(0.37, 0.66),
   knee:     Offset(0.28, 0.72),
@@ -150,13 +154,13 @@ const _kTopWide = _Pose(
   head:     Offset(0.73, 0.37),
 );
 const _kBotWide = _Pose(
-  hand:     Offset(0.83, _kG),
-  elbow:    Offset(0.63, 0.74),   // acute: elbow draws back behind shoulder (was 0.79,0.71 — obtuse)
-  shoulder: Offset(0.66, 0.67),
-  hip:      Offset(0.37, 0.74),
+  hand:     Offset(0.80, _kG),
+  elbow:    Offset(0.78, 0.66),   // flares outward (forward) — wide elbow flare vs standard draw-back
+  shoulder: Offset(0.66, 0.70),   // drops slightly lower than standard (wider ROM)
+  hip:      Offset(0.37, 0.75),   // on plank line shoulder(0.66,0.70)→ankle(0.18,0.78)
   knee:     Offset(0.28, 0.76),
   ankle:    Offset(0.18, _kG),
-  head:     Offset(0.73, 0.57),
+  head:     Offset(0.73, 0.60),
 );
 
 // ── Diamond ───────────────────────────────────────────────────────────────────
@@ -284,7 +288,7 @@ List<_CalloutDef> _calloutsFor(PushUpVariation v) {
       ];
     case PushUpVariation.wide:
       return [
-        _CalloutDef(text: 'Arms wide',  anchor: const Offset(0.83, _kG),  label: const Offset(0.74, 0.90)),
+        _CalloutDef(text: 'Arms wide',  anchor: const Offset(0.80, _kG),  label: const Offset(0.72, 0.90)),
         _CalloutDef(text: 'Hips level', anchor: const Offset(0.37, 0.66), label: const Offset(0.24, 0.20)),
       ];
     case PushUpVariation.diamond:

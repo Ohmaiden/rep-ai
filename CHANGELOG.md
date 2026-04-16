@@ -5,6 +5,16 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-16 (Wide push-up animation rework — build 68)
+
+### Changed
+- Wide push-up animation overhauled: hand moved from x=0.83 to x=0.80 so the arm length is proportional (the old value made the arm look longer than standard, not wider)
+- Bottom elbow now flares forward/outward to correctly show the wide-grip elbow flare, instead of drawing back behind the shoulder like a standard push-up
+- Shoulder drops slightly lower at the bottom to reflect the greater range of motion a wide stance allows
+- 'Arms wide' callout anchor updated to match new hand position
+
+---
+
 ## [2.4.0] — 2026-04-16 (UI and animation fixes — build 67)
 
 ### Changed
