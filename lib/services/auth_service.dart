@@ -19,7 +19,11 @@ class AuthService extends ChangeNotifier {
   User? _currentUser;
   VoidCallback? _onSignIn;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  // iOS reads CLIENT_ID from GoogleService-Info.plist automatically,
+  // but setting it explicitly avoids any scene/window lookup crashes.
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: '1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683.apps.googleusercontent.com',
+  );
 
   /// Called when auth state transitions from signed-out to signed-in.
   void setOnSignIn(VoidCallback callback) {
@@ -150,8 +154,13 @@ class AuthService extends ChangeNotifier {
       nonce: hashedNonce,
     );
 
+    final identityToken = appleCredential.identityToken;
+    if (identityToken == null) {
+      throw Exception('Apple Sign-In did not return an identity token.');
+    }
+
     final oauthCredential = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
+      idToken: identityToken,
       rawNonce: rawNonce,
     );
 

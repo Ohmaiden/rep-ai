@@ -99,11 +99,17 @@ class _AccountScreenState extends State<AccountScreen> {
       await auth.signInWithApple();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (e.toString().contains('cancelled') ||
-          e.toString().contains('AuthorizationErrorCode.canceled')) {
+      final msg = e.toString();
+      if (msg.contains('cancelled') ||
+          msg.contains('AuthorizationErrorCode.canceled')) {
         _setError(null);
+      } else if (msg.contains('identity token')) {
+        _setError('Apple Sign-In failed: no token received. Please try again.');
+      } else if (msg.contains('invalid-credential') ||
+                 msg.contains('invalid_grant')) {
+        _setError('Apple Sign-In failed. Please try again or use a different sign-in method.');
       } else {
-        _setError(_friendlyError(e.toString()));
+        _setError(_friendlyError(msg));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -143,7 +149,8 @@ class _AccountScreenState extends State<AccountScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
+        title: const Text('Sign Out',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text(
           'Your data stays on this device. Sign back in any time to re-sync.',
         ),
