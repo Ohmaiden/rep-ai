@@ -7,7 +7,6 @@
 library;
 
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import '../models/workout_models.dart';

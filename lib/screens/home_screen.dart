@@ -822,60 +822,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-  // ── Monthly Rep Summary Card ──────────────────────────────────────────────
-
-  Widget _buildMonthlyRepCard() {
-    final theme = Theme.of(context);
-    final now = DateTime.now();
-    final monthLabel = '${_monthName(now.month)} ${now.year}';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_month_rounded,
-                color: Color(0xFF7C3AED), size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(monthLabel,
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: theme.textTheme.bodyMedium?.color)),
-                  const SizedBox(height: 2),
-                  Text('This month',
-                      style: theme.textTheme.titleMedium),
-                ],
-              ),
-            ),
-            Text(
-              '$_currentMonthReps',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF7C3AED),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Text('reps', style: theme.textTheme.bodyMedium),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _monthName(int month) {
-    const names = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return names[month];
-  }
-
   // ── Daily Goal Card with tap-to-edit ─────────────────────────────────────
 
   Widget _buildDailyGoalCard() {
