@@ -3,32 +3,32 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>YOUR_IOS_CLIENT_ID.apps.googleusercontent.com</string>
+	<string>1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
+	<string>com.googleusercontent.apps.1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683</string>
 	<key>API_KEY</key>
-	<string>YOUR_IOS_API_KEY</string>
+	<string>AIzaSyA1dTG6WgBXKCibskiKW8KNpqIfcincG18</string>
 	<key>GCM_SENDER_ID</key>
-	<string>000000000000</string>
+	<string>1056534037851</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.repcounter.repAi</string>
+	<string>com.ohmaiden.repai</string>
 	<key>PROJECT_ID</key>
-	<string>YOUR_FIREBASE_PROJECT_ID</string>
+	<string>rep-ai-app</string>
 	<key>STORAGE_BUCKET</key>
-	<string>YOUR_FIREBASE_PROJECT_ID.appspot.com</string>
+	<string>rep-ai-app.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_GCM_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:000000000000:ios:0000000000000000</string>
+	<string>1:1056534037851:ios:ce0332e2ce87d92de8467e</string>
 </dict>
 </plist>

@@ -1,25 +1,45 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "YOUR_FIREBASE_PROJECT_ID",
-    "storage_bucket": "YOUR_FIREBASE_PROJECT_ID.appspot.com"
+    "project_number": "1056534037851",
+    "project_id": "rep-ai-app",
+    "storage_bucket": "rep-ai-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "mobilesdk_app_id": "1:1056534037851:android:f469a8a4ea5b17ede8467e",
         "android_client_info": {
           "package_name": "com.repcounter.rep_counter"
         }
       },
       "oauth_client": [
         {
-          "client_id": "000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+          "client_id": "1056534037851-a4ebafq7jeibtnkn6f7kikrif45q0n4s.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
-      "api_key": [{"current_key": "YOUR_ANDROID_API_KEY"}],
-      "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUi-v1ul3HM9RweVKYwhEEcX3_Bc0SLwc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1056534037851-a4ebafq7jeibtnkn6f7kikrif45q0n4s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ohmaiden.repai"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
