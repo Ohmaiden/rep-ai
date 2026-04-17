@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   # --- Pose Detection ---
-  google_mlkit_pose_detection: ^0.12.0    # On-device pose detection (33 landmarks)
+  google_mlkit_pose_detection: ^0.14.0    # On-device pose detection (33 landmarks)
   camera: ^0.11.0+2                        # Camera access
 
   # --- Local Storage ---
