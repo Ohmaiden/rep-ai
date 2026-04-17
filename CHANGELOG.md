@@ -5,6 +5,17 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.5.0] — 2026-04-17 (Build fixes — build 86)
+
+### Fixed
+- iOS CocoaPods build failure: bumped iOS deployment target to 15.5 (required by `google_mlkit_pose_detection` 0.14.x)
+- Upgraded `google_mlkit_pose_detection` to 0.14.1 to resolve `MLKitVision`/`MLKitXenoCommon` beta version conflict
+- Replaced placeholder Firebase config files with real credentials (Android `google-services.json`, iOS `GoogleService-Info.plist`)
+- Added `Runner.entitlements` with Sign In with Apple capability and wired into all Xcode build configs
+- Removed orphaned `_buildMonthlyRepCard` method and unused `dart:typed_data` import (flutter analyze warnings)
+
+---
+
 ## [2.5.0] — 2026-04-17 (Cloud Sync + Account + Home screen polish — build 79)
 
 ### Added
