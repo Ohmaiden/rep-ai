@@ -1,7 +1,6 @@
-// SETUP REQUIRED: Replace placeholder values.
-// Run `flutterfire configure` after creating your Firebase project,
-// OR manually copy values from Firebase Console → Project Settings.
-// See: https://firebase.flutter.dev/docs/cli
+// Firebase configuration — generated from Firebase Console project "rep-ai-app".
+// Do not commit changes to this file without updating the corresponding
+// google-services.json and GoogleService-Info.plist.
 library;
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
@@ -22,20 +21,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: '1:000000000000:android:0000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyAUi-v1ul3HM9RweVKYwhEEcX3_Bc0SLwc',
+    appId: '1:1056534037851:android:f469a8a4ea5b17ede8467e',
+    messagingSenderId: '1056534037851',
+    projectId: 'rep-ai-app',
+    storageBucket: 'rep-ai-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: '1:000000000000:ios:0000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
-    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    iosBundleId: 'YOUR_BUNDLE_ID',
+    apiKey: 'AIzaSyA1dTG6WgBXKCibskiKW8KNpqIfcincG18',
+    appId: '1:1056534037851:ios:ce0332e2ce87d92de8467e',
+    messagingSenderId: '1056534037851',
+    projectId: 'rep-ai-app',
+    storageBucket: 'rep-ai-app.firebasestorage.app',
+    iosClientId: '1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683.apps.googleusercontent.com',
+    iosBundleId: 'com.ohmaiden.repai',
   );
 }

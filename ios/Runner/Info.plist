@@ -68,6 +68,18 @@
 	     failing App Store Connect validation. -->
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<!-- Google Sign-In: required URL scheme so iOS can redirect back after OAuth -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1056534037851-rtsr94ua66bv5pss8ds5cu137lceo683</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Rep AI uses your camera to track your movement and count reps in real time.</string>
 	<key>NSMicrophoneUsageDescription</key>
