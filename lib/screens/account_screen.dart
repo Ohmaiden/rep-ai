@@ -103,13 +103,9 @@ class _AccountScreenState extends State<AccountScreen> {
       if (msg.contains('cancelled') ||
           msg.contains('AuthorizationErrorCode.canceled')) {
         _setError(null);
-      } else if (msg.contains('identity token')) {
-        _setError('Apple Sign-In failed: no token received. Please try again.');
-      } else if (msg.contains('invalid-credential') ||
-                 msg.contains('invalid_grant')) {
-        _setError('Apple Sign-In failed. Please try again or use a different sign-in method.');
       } else {
-        _setError(_friendlyError(msg));
+        // Temporarily show raw error for debugging
+        _setError(msg);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
