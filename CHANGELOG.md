@@ -5,6 +5,26 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.5.0] — 2026-04-17 (Auth debug — build 90)
+
+### Changed
+- Apple Sign-In error handler temporarily shows raw Firebase error for debugging
+
+---
+
+## [2.5.0] — 2026-04-17 (Auth fixes — build 89)
+
+### Fixed
+- Google Sign-In crash: added explicit `clientId` to `GoogleSignIn` constructor; added `openURL` forwarding in `AppDelegate.swift`
+- Apple Sign-In: added null guard on `identityToken`; Apple-specific error messages instead of generic email/password copy
+- Sign Out dialog title is now bold to match other headings
+- `firebase_options.dart`: replaced placeholder values with real Firebase project credentials
+- `Info.plist`: added `REVERSED_CLIENT_ID` URL scheme for Google Sign-In redirect
+- Apple Sign-In nonce: proper SHA-256 nonce generation and verification flow
+- Added `crypto` package for nonce hashing
+
+---
+
 ## [2.5.0] — 2026-04-17 (Build fixes — build 86)
 
 ### Fixed
