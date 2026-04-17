@@ -5,8 +5,6 @@ library;
 
 import 'dart:io' show Platform;
 import 'dart:math';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -128,13 +126,6 @@ class AuthService extends ChangeNotifier {
         .join();
   }
 
-  /// SHA-256 hashes the nonce for sending to Firebase.
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
   Future<void> signInWithApple() async {
     if (!_isFirebaseAvailable) {
       throw Exception('Firebase is not configured. Please set up Firebase first.');
@@ -144,14 +135,13 @@ class AuthService extends ChangeNotifier {
     }
 
     final rawNonce = _generateNonce();
-    final hashedNonce = _sha256ofString(rawNonce);
 
     final appleCredential = await SignInWithApple.getAppleIDCredential(
       scopes: [
         AppleIDAuthorizationScopes.email,
         AppleIDAuthorizationScopes.fullName,
       ],
-      nonce: hashedNonce,
+      nonce: rawNonce,
     );
 
     final identityToken = appleCredential.identityToken;
