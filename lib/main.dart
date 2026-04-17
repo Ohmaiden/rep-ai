@@ -11,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'services/database_service.dart';
 import 'services/workout_state.dart';
 import 'services/theme_provider.dart';
+import 'services/auth_service.dart';
+import 'services/cloud_sync_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/workout_screen.dart';
 import 'screens/history_screen.dart';
@@ -35,12 +37,20 @@ void main() async {
   final onboardingDone = prefs.getBool('onboarding_done') ?? false;
   final savedTheme = prefs.getString('theme_mode');
 
+  // Auth + cloud sync (graceful — app works fully offline if Firebase not configured).
+  final authService = AuthService();
+  await authService.initialize();
+  final syncService = CloudSyncService(authService: authService, db: dbService);
+  authService.setOnSignIn(() => syncService.pullAndMerge());
+
   runApp(
     MultiProvider(
       providers: [
         Provider<DatabaseService>.value(value: dbService),
         ChangeNotifierProvider(create: (_) => WorkoutState()),
         ChangeNotifierProvider(create: (_) => ThemeProvider(savedTheme)),
+        ChangeNotifierProvider<AuthService>.value(value: authService),
+        Provider<CloudSyncService>.value(value: syncService),
       ],
       child: RepCounterApp(showOnboarding: !onboardingDone),
     ),

@@ -12,10 +12,11 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 import '../services/workout_state.dart';
+import '../services/auth_service.dart';
 import '../models/workout_models.dart';
 import '../widgets/tappable_number.dart';
 import 'stats_detail_screens.dart';
-import 'exercise_guide_screen.dart';
+import 'account_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -192,6 +193,13 @@ class HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  String _getGreeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   void _showHelp() {
     Navigator.pushNamed(context, '/onboarding');
   }
@@ -220,7 +228,7 @@ class HomeScreenState extends State<HomeScreen> {
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      // Header
+                      // Header — greeting + date + account button
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
@@ -231,28 +239,47 @@ class HomeScreenState extends State<HomeScreen> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                    Text('Rep AI',
-                                        style: theme
-                                            .textTheme.headlineLarge),
+                                    Text(_getGreeting(),
+                                        style: theme.textTheme.headlineLarge),
                                     const SizedBox(height: 2),
-                                    Text('AI-powered rep counting',
-                                        style:
-                                            theme.textTheme.bodyMedium),
+                                    Text(
+                                      DateFormat('EEEE, d MMMM')
+                                          .format(DateTime.now()),
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ExerciseGuideScreen(),
+                              Consumer<AuthService>(
+                                builder: (context, auth, _) => IconButton(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            const AccountScreen()),
                                   ),
+                                  icon: auth.isSignedIn
+                                      ? CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor:
+                                              const Color(0xFF2563EB),
+                                          child: Text(
+                                            (auth.displayName ?? '?')[0]
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight:
+                                                    FontWeight.w700),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.account_circle_outlined),
+                                  color: theme.textTheme.bodyMedium?.color,
+                                  tooltip: auth.isSignedIn
+                                      ? 'Account'
+                                      : 'Sign in',
                                 ),
-                                icon: const Icon(
-                                    Icons.fitness_center_rounded),
-                                color: theme.textTheme.bodyMedium?.color,
-                                tooltip: 'Exercise guide',
                               ),
                               IconButton(
                                 onPressed: _showHelp,
@@ -275,14 +302,6 @@ class HomeScreenState extends State<HomeScreen> {
                             child: _buildStreakSection(),
                           ),
                         ),
-
-                      // Monthly rep summary card
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                          child: _buildMonthlyRepCard(),
-                        ),
-                      ),
 
                       // Daily goal carry-over card (tap-to-edit)
                       if (_goalsEnabled)
@@ -312,16 +331,23 @@ class HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
 
-                      // Stats
+                      // Stats — 2×2 grid
                       if (_stats['totalSessions'] != null &&
-                          _stats['totalSessions'] > 0)
+                          _stats['totalSessions'] > 0) ...[
                         SliverToBoxAdapter(
                           child: Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                            child: Text('Overview',
+                                style: theme.textTheme.headlineMedium),
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                             child: _buildStatsRow(),
                           ),
                         ),
+                      ],
 
                       // Recent workouts header
                       SliverToBoxAdapter(
@@ -604,60 +630,71 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatsRow() {
     final todayReps = _repsByPeriod['today'] ?? 0;
-    final dailySubtitle = (!_goalsEnabled)
-        ? 'This week: ${_repsByPeriod['thisWeek'] ?? 0}'
-        : (_adjustedDailyTarget > 0
-            ? '$todayReps / $_adjustedDailyTarget reps today'
-            : 'This week: ${_repsByPeriod['thisWeek'] ?? 0}');
 
-    return Row(
+    return Column(
       children: [
-        _buildStatCard('${_stats['totalSessions']}', 'Sessions',
-            Icons.calendar_today, const Color(0xFF2563EB)),
-        const SizedBox(width: 12),
-        _buildStatCard(
-            '$todayReps',
-            'Today\'s Reps',
-            Icons.repeat,
-            const Color(0xFF16A34A),
-            onTap: _openRepBreakdown,
-            subtitle: dailySubtitle),
-        const SizedBox(width: 12),
-        _buildStatCard('${_stats['averageFormScore']}%', 'Form Score',
-            Icons.check_circle_outline, const Color(0xFFEA580C)),
+        Row(
+          children: [
+            _buildStatCard(
+              '${_stats['totalSessions'] ?? 0}',
+              'Sessions',
+              Icons.calendar_today_rounded,
+              const Color(0xFF2563EB),
+            ),
+            const SizedBox(width: 12),
+            _buildStatCard(
+              '$_currentMonthReps',
+              'This Month',
+              Icons.calendar_month_rounded,
+              const Color(0xFF7C3AED),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildStatCard(
+              '$todayReps',
+              "Today's Reps",
+              Icons.repeat_rounded,
+              const Color(0xFF16A34A),
+              onTap: _openRepBreakdown,
+            ),
+            const SizedBox(width: 12),
+            _buildStatCard(
+              '${_stats['averageFormScore'] ?? 0}%',
+              'Avg Form',
+              Icons.check_circle_outline_rounded,
+              const Color(0xFFEA580C),
+            ),
+          ],
+        ),
       ],
     );
   }
 
   Widget _buildStatCard(
       String value, String label, IconData icon, Color color,
-      {VoidCallback? onTap, String? subtitle}) {
+      {VoidCallback? onTap}) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(icon, size: 20, color: color),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(value,
                     style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: color)),
+                const SizedBox(height: 2),
                 Text(label,
                     style: Theme.of(context).textTheme.bodyMedium),
-                if (subtitle != null)
-                  Text(subtitle,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.color)),
               ],
             ),
           ),
@@ -682,7 +719,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Badges', style: theme.textTheme.titleMedium),
+        Text('Badges', style: theme.textTheme.headlineMedium),
         const SizedBox(height: 8),
         SizedBox(
           height: 80,
@@ -1218,8 +1255,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSessionCard(WorkoutSession session) {
     final theme = Theme.of(context);
-    final dateStr =
-        DateFormat('MMM d, yyyy - h:mm a').format(session.startedAt);
+    final dateStr = DateFormat('MMM d · h:mm a').format(session.startedAt);
     final formColor = session.formScore >= 80
         ? const Color(0xFF16A34A)
         : session.formScore >= 50
@@ -1261,7 +1297,7 @@ class HomeScreenState extends State<HomeScreen> {
                           color: theme.textTheme.headlineLarge?.color)),
                   const SizedBox(height: 2),
                   Text(
-                    '${session.totalReps} reps  \u00b7  ${_formatDuration(session.duration)}',
+                    '${session.goodFormReps} good reps  \u00b7  ${_formatDuration(session.duration)}',
                     style: theme.textTheme.bodyMedium,
                   ),
                   Text(dateStr,

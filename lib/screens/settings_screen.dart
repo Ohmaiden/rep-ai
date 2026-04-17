@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/theme_provider.dart';
+import '../services/auth_service.dart';
+import 'account_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -85,6 +87,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // ── Account ───────────────────────────────────────────────────
+          Consumer<AuthService>(
+            builder: (context, auth, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Account', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: auth.isSignedIn
+                      ? CircleAvatar(
+                          radius: 16,
+                          backgroundColor: const Color(0xFF2563EB),
+                          child: Text(
+                            (auth.displayName ?? '?')[0].toUpperCase(),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700),
+                          ),
+                        )
+                      : const Icon(Icons.account_circle_outlined),
+                  title: Text(
+                    auth.isSignedIn
+                        ? (auth.displayName ?? 'Signed in')
+                        : 'Sign in to sync',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    auth.isSignedIn
+                        ? (auth.userEmail ?? '')
+                        : 'Keep your data safe across devices',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                        builder: (_) => const AccountScreen()),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
           // ── Goals ────────────────────────────────────────────────────
           Text('Goals', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

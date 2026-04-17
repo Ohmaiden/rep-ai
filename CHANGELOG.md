@@ -5,6 +5,42 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.5.0] — 2026-04-17 (Cloud Sync + Account + Home screen polish — build 79)
+
+### Added
+- Optional user accounts (Email, Google, Apple Sign In) — entirely optional; offline mode works fully without an account
+- Cloud sync via Firestore: workout history, streak, goals, badges, and settings follow the user across devices on sign-in
+- Account screen accessible from home screen header avatar and Settings → Account
+- "Sync Now" button in the account profile screen to manually push/pull data
+- Settings screen gains an Account row at the top linking to the account screen
+
+### Changed
+- Home screen header: replaced "Rep AI" title with a time-of-day greeting ("Good morning / afternoon / evening") and today's date; account avatar button in top-right (shows initial when signed in)
+- Removed redundant Exercise Guide icon from home screen header (accessible via Workout tab)
+- Stats section redesigned as a 2×2 grid: Sessions, This Month, Today's Reps, Avg Form — replaces 3-card row and removes the separate monthly rep card
+- "Overview" section header added above the stats grid for clearer navigation hierarchy
+- "Badges" section header upgraded to headlineMedium to match other section headers
+- Session cards now display good-form rep count (more accurate than total attempts); date format cleaned up to "Apr 17 · 2:30 PM"
+
+### Technical
+- New: `lib/firebase_options.dart` (placeholder — replace with `flutterfire configure` output)
+- New: `lib/services/auth_service.dart` — Firebase Auth wrapper (ChangeNotifier)
+- New: `lib/services/cloud_sync_service.dart` — Firestore push/pull (batch writes, merge on sign-in)
+- New: `lib/screens/account_screen.dart` — sign-in / profile UI with 3 states
+- `AuthService` + `CloudSyncService` wired into provider tree in `main.dart`
+- Android: `google-services.json` placeholder + `com.google.gms.google-services` plugin
+- iOS: `GoogleService-Info.plist` placeholder
+
+### Firebase setup required before cloud sync activates
+1. Create a Firebase project at https://console.firebase.google.com
+2. Add Android app (`com.repcounter.rep_counter`) and iOS app to the project
+3. Replace `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist`
+4. Run `flutterfire configure` to regenerate `lib/firebase_options.dart`
+5. Enable Email/Password, Google, and Apple Sign In in Firebase Console → Authentication
+6. Firestore rules: allow users read/write only to `/users/{their_uid}/**`
+
+---
+
 ## [2.4.0] — 2026-04-17 (Stage 3 final tweaks — build 77)
 
 ### Changed

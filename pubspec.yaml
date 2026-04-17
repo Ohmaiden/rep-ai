@@ -1,7 +1,7 @@
 name: rep_counter
 description: Rep AI - AI-powered rep counter with form validation using on-device pose detection.
 publish_to: 'none'
-version: 2.4.0+78
+version: 2.5.0+79
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -32,6 +32,13 @@ dependencies:
   audioplayers: ^6.1.0                    # Audio feedback for reps
   sqflite_common_ffi: ^2.4.0+2
   tflite_flutter: ^0.12.0                 # Run the trained push-up classifier on-device
+
+  # --- Cloud & Auth ---
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
 
 dev_dependencies:
   flutter_test:
