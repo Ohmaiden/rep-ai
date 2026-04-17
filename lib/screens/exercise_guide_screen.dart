@@ -26,11 +26,13 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
 
   late final PageController _pageController;
   final _chipScrollController = ScrollController();
+  late final List<GlobalKey> _chipKeys;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    _chipKeys = List.generate(_variations.length, (_) => GlobalKey());
   }
 
   @override
@@ -38,6 +40,17 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
     _pageController.dispose();
     _chipScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollChipIntoView(int index) {
+    final ctx = _chipKeys[index].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      alignment: 0.5,
+    );
   }
 
   void _selectVariation(int index) {
@@ -48,6 +61,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeInOut,
     );
+    _scrollChipIntoView(index);
   }
 
   @override
@@ -108,6 +122,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
                       child: GestureDetector(
                         onTap: () => _selectVariation(i),
                         child: AnimatedContainer(
+                          key: _chipKeys[i],
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 6),
@@ -154,6 +169,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
                       itemCount: _variations.length,
                       onPageChanged: (i) {
                         setState(() => _selectedIndex = i);
+                        _scrollChipIntoView(i);
                       },
                       itemBuilder: (ctx, i) => Container(
                         color: isDark

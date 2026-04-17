@@ -102,11 +102,7 @@ class _WorkoutSetupScreenState extends State<WorkoutSetupScreen> {
                           reps: _reps,
                           restSeconds: _rest,
                         );
-                    // Show the form guide before the workout starts.
-                    // Pass isCustom=true so the guide skips re-starting the session.
-                    Navigator.pushReplacementNamed(
-                        context, '/guide',
-                        arguments: true);
+                    Navigator.pushReplacementNamed(context, '/workout');
                   },
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

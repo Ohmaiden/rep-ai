@@ -7,6 +7,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../services/workout_state.dart';
 import 'exercise_guide_screen.dart';
 
 class WorkoutHubScreen extends StatelessWidget {
@@ -47,7 +49,9 @@ class WorkoutHubScreen extends StatelessWidget {
     if (setup) {
       Navigator.pushNamed(context, '/setup');
     } else {
-      Navigator.pushNamed(context, '/guide');
+      // Quick workout: skip the form guide, start immediately.
+      context.read<WorkoutState>().startSession(exercise: 'Push-ups');
+      Navigator.pushNamed(context, '/workout');
     }
   }
 
@@ -209,7 +213,11 @@ class _ExerciseOptionsSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.headlineSmall),
+          Text(
+            title,
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 4),
           Text(
             'What would you like to do?',

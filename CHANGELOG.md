@@ -5,6 +5,21 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.4.0] — 2026-04-17 (Stage 3 final tweaks — build 77)
+
+### Changed
+- "Push Ups" title in the workout bottom sheet is now bold (fontWeight w800), matching other headings in the app
+- Exercise Guide chip row auto-scrolls to keep the selected variation visible when swiping — Pike, Decline and any off-screen chip are automatically centered in the row
+- Quick Workout now skips the pre-workout form guide and starts the session immediately; users can still view the guide via the Form Guide button before starting
+- Custom Workout (Start Workout button) now skips the pre-workout form guide and goes straight into the workout; same rationale — guide is available separately
+
+### Technical
+- `_chipKeys` list of `GlobalKey`s added to `ExerciseGuideScreen`; `Scrollable.ensureVisible` called on `onPageChanged` and `_selectVariation`
+- `WorkoutHubScreen` imports `WorkoutState` provider; quick workout path calls `startSession` then navigates to `/workout`
+- `WorkoutSetupScreen` navigates to `/workout` directly instead of `/guide`
+
+---
+
 ## [2.4.0] — 2026-04-16 (Push Ups exercise hub + wide-elbow fix — build 75)
 
 ### Changed
