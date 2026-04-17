@@ -4,11 +4,9 @@
 library;
 
 import 'dart:io' show Platform;
-import 'dart:math';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
 
@@ -117,15 +115,6 @@ class AuthService extends ChangeNotifier {
 
   // ── Apple Sign In ─────────────────────────────────────────────────────────
 
-  /// Generates a cryptographically random nonce string.
-  String _generateNonce([int length = 32]) {
-    const charset =
-        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
-        .join();
-  }
-
   Future<void> signInWithApple() async {
     if (!_isFirebaseAvailable) {
       throw Exception('Firebase is not configured. Please set up Firebase first.');
@@ -134,37 +123,13 @@ class AuthService extends ChangeNotifier {
       throw Exception('Apple Sign In is only available on iOS.');
     }
 
-    final rawNonce = _generateNonce();
+    // Use Firebase's built-in provider flow — it handles nonce generation
+    // and token validation internally, bypassing the manual credential path.
+    final appleProvider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
 
-    final appleCredential = await SignInWithApple.getAppleIDCredential(
-      scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-      nonce: rawNonce,
-    );
-
-    final identityToken = appleCredential.identityToken;
-    if (identityToken == null) {
-      throw Exception('Apple Sign-In did not return an identity token.');
-    }
-
-    final oauthCredential = OAuthProvider('apple.com').credential(
-      idToken: identityToken,
-      rawNonce: rawNonce,
-    );
-
-    final result = await FirebaseAuth.instance.signInWithCredential(oauthCredential);
-
-    // Apple only sends the name on first sign-in.
-    final givenName = appleCredential.givenName;
-    final familyName = appleCredential.familyName;
-    if (givenName != null && result.user?.displayName == null) {
-      final fullName = [givenName, familyName].whereType<String>().join(' ').trim();
-      if (fullName.isNotEmpty) {
-        await result.user?.updateDisplayName(fullName);
-      }
-    }
+    await FirebaseAuth.instance.signInWithProvider(appleProvider);
   }
 
   // ── Sign Out ──────────────────────────────────────────────────────────────
