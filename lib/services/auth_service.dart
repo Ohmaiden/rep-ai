@@ -132,6 +132,22 @@ class AuthService extends ChangeNotifier {
     await FirebaseAuth.instance.signInWithProvider(appleProvider);
   }
 
+  // ── Profile updates ──────────────────────────────────────────────────────
+
+  Future<void> updateDisplayName(String name) async {
+    await _currentUser?.updateDisplayName(name.trim());
+    await _currentUser?.reload();
+    _currentUser = FirebaseAuth.instance.currentUser;
+    notifyListeners();
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    if (!_isFirebaseAvailable) {
+      throw Exception('Firebase is not configured.');
+    }
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+  }
+
   // ── Sign Out ──────────────────────────────────────────────────────────────
 
   Future<void> signOut() async {

@@ -92,6 +92,72 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
+  Future<void> _handleForgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      _setError('Enter your email address above, then tap Forgot password.');
+      return;
+    }
+    final auth = context.read<AuthService>();
+    setState(() { _loading = true; _errorMessage = null; });
+    try {
+      await auth.sendPasswordReset(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reset email sent to $email'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      _setError(_friendlyError(e.toString()));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleEditName(AuthService auth) async {
+    final ctrl = TextEditingController(text: auth.displayName ?? '');
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Display name'),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (newName == null || newName.isEmpty || !mounted) return;
+    try {
+      await auth.updateDisplayName(newName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not update name: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleApple() async {
     final auth = context.read<AuthService>();
     setState(() { _loading = true; _errorMessage = null; });
@@ -292,10 +358,21 @@ class _AccountScreenState extends State<AccountScreen> {
                   fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 16),
-        Text(
-          auth.displayName ?? 'Account',
-          style: theme.textTheme.headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              auth.displayName ?? 'Account',
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              onPressed: () => _handleEditName(auth),
+              color: theme.textTheme.bodyMedium?.color,
+              tooltip: 'Edit name',
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(auth.userEmail ?? '',
@@ -502,6 +579,26 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
         ),
+
+        // Forgot password (sign-in mode only)
+        if (!_isSignUp)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _loading ? null : _handleForgotPassword,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Forgot password?',
+                style: TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
 
         // Error
         if (_errorMessage != null) ...[
