@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/theme_provider.dart';
 import '../services/auth_service.dart';
 import 'account_screen.dart';
+import 'feedback_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -235,6 +236,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Icons.dark_mode,
               subtitle: 'Dark background, easier on the eyes at night'),
 
+          const SizedBox(height: 24),
+
+          // ── Support ──────────────────────────────────────────────────
+          Text('Support', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.feedback_outlined),
+            title: const Text('Send Feedback',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: const Text('Request a feature or report an issue'),
+            trailing: const Icon(Icons.chevron_right),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onTap: () => showFeedbackChooser(context),
+          ),
           const SizedBox(height: 24),
 
           // ── FAQ ───────────────────────────────────────────────────────

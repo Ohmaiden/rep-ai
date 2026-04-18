@@ -5,6 +5,16 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-18 (What's New + Feedback — build 98)
+
+### Added
+- What's New popup: appears automatically on first launch after an update; shows version-grouped changelog with bullet points; never shown twice for the same version (SharedPreferences tracks last-seen version)
+- What's New button: new `new_releases` icon next to the help button on the home screen opens the changelog on demand at any time
+- Feedback: "Send Feedback" entry under a new Support section in Settings; chooser sheet offers "Feature Request" or "Report an Issue"; each opens a text-input screen and submits anonymously to Firestore (`feedback` collection: type + message + server timestamp only — no user ID, device info, or personal data)
+- Changelog history in What's New covers versions 2.1.0–2.3.0
+
+---
+
 ## [2.5.0] — 2026-04-17 (Squircle splash icon + dialog polish — build 95)
 
 ### Changed

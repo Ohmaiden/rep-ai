@@ -17,6 +17,7 @@ import '../models/workout_models.dart';
 import '../widgets/tappable_number.dart';
 import 'stats_detail_screens.dart';
 import 'account_screen.dart';
+import 'whats_new_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -280,6 +281,14 @@ class HomeScreenState extends State<HomeScreen> {
                                       ? 'Account'
                                       : 'Sign in',
                                 ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    WhatsNewScreen.showOnDemand(context),
+                                icon: const Icon(
+                                    Icons.new_releases_outlined),
+                                color: theme.textTheme.bodyMedium?.color,
+                                tooltip: "What's new",
                               ),
                               IconButton(
                                 onPressed: _showHelp,

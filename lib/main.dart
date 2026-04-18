@@ -21,6 +21,7 @@ import 'screens/workout_setup_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/pre_workout_guide_screen.dart';
 import 'screens/workout_hub_screen.dart';
+import 'screens/whats_new_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,6 +142,15 @@ class _MainShellState extends State<MainShell> {
 
   // Direct 1-to-1 mapping now that all tabs are in the stack.
   int get _stackIndex => _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show What's New popup once after the first frame if version changed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) WhatsNewScreen.showIfNeeded(context);
+    });
+  }
 
   void _onTap(int navIndex) {
     if (navIndex == 2) {
