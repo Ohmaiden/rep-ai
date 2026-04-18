@@ -122,7 +122,8 @@ class _AccountScreenState extends State<AccountScreen> {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Name'),
+        title: const Text('Edit Name',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: TextField(
           controller: ctrl,
           autofocus: true,

@@ -5,6 +5,18 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.5.0] — 2026-04-17 (Squircle splash icon + dialog polish — build 95)
+
+### Changed
+- Splash screen icon: launch image is now squircle-shaped (iOS App Store superellipse, n=5) with the blue gradient + white dumbbell, matching the marketing icon — transparent corners reveal the adaptive background
+- Edit Name dialog title is now bold (`FontWeight.w700`), matching the Sign Out dialog and other headings
+- Splash screen background: `systemBackgroundColor` follows iOS system dark/light mode; note — the app's in-app theme preference cannot be read before launch completes (iOS limitation), so the splash follows the device's system setting
+
+### Added
+- `tool/generate_launch_icons.dart`: Dart script to regenerate squircle launch images at 1x/2x/3x from scratch (no external dependencies)
+
+---
+
 ## [2.5.0] — 2026-04-18 (Account polish + splash screen — build 94)
 
 ### Added
