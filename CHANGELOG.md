@@ -5,6 +5,32 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.5.0] — 2026-04-18 (Account polish + splash screen — build 94)
+
+### Added
+- Edit display name: pencil icon next to the name in the account profile screen opens a dialog to update it — works for any sign-in method (email, Google, Apple)
+- Forgot password: "Forgot password?" link in the email sign-in form; if an email address is already typed it sends a Firebase password-reset email immediately, otherwise it prompts the user to enter one
+- `AuthService.updateDisplayName()` and `AuthService.sendPasswordReset()` methods
+
+### Changed
+- Splash screen: replaced empty placeholder images with the real app icon (80 pt, scaled); added "Rep AI" label below the icon; background now uses `systemBackgroundColor` — white in light mode, system dark in dark mode — matching the app's current theme setting
+
+---
+
+## [2.5.0] — 2026-04-18 (Apple Sign-In investigation — builds 91–93)
+
+### Changed
+- Build 91: CHANGELOG update only, no app changes (build number bump after key rotation)
+- Build 92: Apple Sign-In nonce strategy changed — pass raw nonce to `getAppleIDCredential` instead of pre-hashed value (Apple's native SDK hashes it internally)
+- Build 93: Apple Sign-In rewritten to use Firebase's `signInWithProvider(AppleAuthProvider())` — removes manual credential + nonce path entirely; Firebase handles the native Apple flow and token exchange internally
+- `sign_in_with_apple` package no longer used in `auth_service.dart` (retained in UI layer for `isAvailable()` check only)
+- Removed `crypto` package dependency from auth service
+
+### Investigating
+- `[firebase_auth/invalid-credential] Invalid Auth response from apple.com` persists across all nonce strategies and Firebase private key rotation; root cause not yet identified
+
+---
+
 ## [2.5.0] — 2026-04-17 (Auth debug — build 90)
 
 ### Changed
