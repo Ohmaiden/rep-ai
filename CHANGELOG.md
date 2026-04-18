@@ -5,6 +5,14 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-18 (Shelf landscape/side-view paths — build 100)
+
+### Changed
+- Side-view classifier shelved: `_geometricClassify` now always routes to `_classifyFrontView`; `_classifySideView` is kept in-code but not called — the app is portrait-only so the camera is always head-on
+- Landscape detection branches in `pushup_analyzer` annotated as shelved; `_isLandscape` is always false in portrait mode so none of those paths are reached
+
+---
+
 ## [2.6.0] — 2026-04-18 (Form detection tuning — build 99)
 
 ### Fixed

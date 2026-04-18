@@ -189,21 +189,14 @@ class MLFormClassifier {
     if (shoulderVis < 0.2) return null;
     if (lS == null || rS == null) return null;
 
-    // ── Detect viewing angle ─────────────────────────────────────────────────
-    // Front view: left and right shoulders are spread apart in the image.
-    // Side view: shoulders overlap (both at similar position).
-    final shoulderSpread = sqrt(
-      pow(lS['x']! - rS['x']!, 2) + pow(lS['y']! - rS['y']!, 2),
-    );
-    final isFrontView = shoulderSpread > 0.08;
-
-    if (isFrontView) {
-      return _classifyFrontView(landmarks, lS, rS, lH, rH, lE, rE, lW, rW,
-          nose, hipVis, deviceAngle);
-    } else {
-      return _classifySideView(landmarks, lS, rS, lH, rH, lE, rE, lW, rW,
-          nose, hipVis, deviceAngle);
-    }
+    // ── Viewing angle ────────────────────────────────────────────────────────
+    // The app is portrait-only so the camera always faces the user head-on.
+    // Side-view classification is shelved (kept below but not called) — it was
+    // written for landscape mode which is no longer supported.
+    // Previously this branched on shoulderSpread > 0.08 to detect side-vs-front;
+    // now we always take the front-view path.
+    return _classifyFrontView(landmarks, lS, rS, lH, rH, lE, rE, lW, rW,
+        nose, hipVis, deviceAngle);
   }
 
   /// Front-view classification: person is facing the camera (typical portrait).
@@ -326,6 +319,9 @@ class MLFormClassifier {
         : const FormPrediction('good_form', 0.5, [0.15, 0.5, 0.35]);
   }
 
+  /// [SHELVED — portrait-only] Side-view classification for landscape mode.
+  /// Not called while the app is portrait-locked. Kept for potential future use.
+  ///
   /// Side-view classification: full body visible from the side (typical landscape).
   /// Both shoulders and hips should be visible for body-angle checks.
   ///
@@ -335,6 +331,7 @@ class MLFormClassifier {
   ///   - Bad arm extension: elbow angle outside push-up range
   ///   - Not deep enough: detected by pushup_analyzer via movement threshold,
   ///     but elbow angle at bottom < ~70° is a proxy from the side
+  // ignore: unused_element
   FormPrediction? _classifySideView(
     Map<String, Map<String, double>> landmarks,
     Map<String, double> lS,

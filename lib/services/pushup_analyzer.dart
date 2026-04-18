@@ -143,7 +143,10 @@ class PushUpAnalyzer {
     List<String> mlFormIssues = const [],
     double deviceAngle = 0,
   }) {
-    // Adapt debounce and vote window to orientation
+    // [SHELVED — portrait-only] Landscape debounce / vote adjustments.
+    // deviceAngle is always 0 while the app is portrait-locked, so _isLandscape
+    // stays false and the landscape branches below are never reached.
+    // Kept for potential future use without deletion.
     final landscape = deviceAngle == 90 || deviceAngle == 270;
     if (landscape != _isLandscape) {
       _isLandscape = landscape;
@@ -357,11 +360,11 @@ class PushUpAnalyzer {
     }
 
     // A rep is good unless bad frames are a clear majority of exercise frames.
-    // Portrait: bad must exceed 60% of frames to fail the rep.
-    // Landscape: slightly stricter at 55% because limb occlusion causes more
-    // classifier noise. This replaces the old simple good >= bad majority rule
-    // which was too sensitive to isolated false-positive frames (e.g. a couple
-    // of hip-sag detections during an otherwise clean rep).
+    // Bad must exceed 60% of frames to fail the rep — isolated false-positive
+    // frames (e.g. a couple of hip-sag detections mid-rep) no longer flip an
+    // otherwise clean rep to bad.
+    // [SHELVED] The landscape branch (55% threshold) is kept but never reached
+    // while the app is portrait-only (_isLandscape is always false).
     final totalExercise = _goodFormFrames + _badFormFrames;
     final badThreshold = _isLandscape ? 0.55 : 0.60;
     final goodRep = totalExercise == 0 ||
