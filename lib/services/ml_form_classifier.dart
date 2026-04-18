@@ -259,22 +259,23 @@ class MLFormClassifier {
     // ── 2a. Hip sag detection ────────────────────────────────────────────────
     // From the front: if hips are visible and significantly below shoulders,
     // the person's core is sagging (hips dropping toward floor).
+    // Threshold is generous (0.20) because a floor-level camera in portrait
+    // creates a natural perspective gap even with a perfectly flat plank.
     if (hipVis > 0.2 && lH != null && rH != null) {
       final hipY = (lH['y']! + rH['y']!) / 2;
       final hipBelowShoulders = hipY - shoulderY;
-      // In front-view push-up, hips and shoulders should be at similar Y.
-      // A large positive gap means hips are sagging (bad form).
-      if (hipBelowShoulders > 0.12) {
+      if (hipBelowShoulders > 0.20) {
         issues.add('Hips too low');
       }
     }
 
     // ── 2b. Head position check ──────────────────────────────────────────────
     // Nose should be roughly at or slightly below shoulder level during push-up.
-    // Too far below (head drooping) = bad head position.
+    // At the bottom of the rep the nose naturally dips lower, so threshold is
+    // 0.20 to avoid penalising full-depth reps.
     if (nose != null) {
       final noseRelShoulder = nose['y']! - shoulderY;
-      if (noseRelShoulder > 0.15) {
+      if (noseRelShoulder > 0.20) {
         issues.add('Head dropping');
       }
     }
@@ -420,19 +421,20 @@ class MLFormClassifier {
       // Use the more visible ankle
       final ankle = (lAvis > rAvis) ? lA! : rA!;
       final double ankleGrav = isLandscape ? ankle['x']! : ankle['y']!;
-      // Expected hip position = midpoint between shoulder and ankle on gravity axis
+      // Expected hip position = midpoint between shoulder and ankle on gravity axis.
+      // Threshold at 0.09 (was 0.06) — the tighter value caused false positives on
+      // users with slight natural lumbar curve and camera-angle perspective.
       final expectedHipGrav = (shoulderGrav + ankleGrav) / 2;
-      // If hip is significantly below (higher gravity value) the expected line → sag
       final hipDeviation = hipGrav - expectedHipGrav;
-      if (hipDeviation > 0.06) {
+      if (hipDeviation > 0.09) {
         issues.add('Hips too low');
       }
     } else {
       // No ankle data — fall back to shoulder-hip gravity gap.
-      // In a plank, shoulder and hip should be close on the gravity axis.
-      // If hip drops far below shoulder, it's sagging.
+      // 0.14 (was 0.10) to reduce false positives when the body is near-horizontal
+      // but camera perspective makes the hip appear slightly lower.
       final hipSag = hipGrav - shoulderGrav;
-      if (hipSag > 0.10) {
+      if (hipSag > 0.14) {
         issues.add('Hips too low');
       }
     }

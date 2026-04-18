@@ -356,12 +356,16 @@ class PushUpAnalyzer {
       }
     }
 
-    // In landscape, use a slightly looser majority: weight good frames by 30%
-    // less (i.e. require fewer good frames relative to bad to still call it good).
-    final effectiveGood = _isLandscape
-        ? (_goodFormFrames * 0.7).round()
-        : _goodFormFrames;
-    final goodRep = effectiveGood >= _badFormFrames || _goodFormFrames > _badFormFrames;
+    // A rep is good unless bad frames are a clear majority of exercise frames.
+    // Portrait: bad must exceed 60% of frames to fail the rep.
+    // Landscape: slightly stricter at 55% because limb occlusion causes more
+    // classifier noise. This replaces the old simple good >= bad majority rule
+    // which was too sensitive to isolated false-positive frames (e.g. a couple
+    // of hip-sag detections during an otherwise clean rep).
+    final totalExercise = _goodFormFrames + _badFormFrames;
+    final badThreshold = _isLandscape ? 0.55 : 0.60;
+    final goodRep = totalExercise == 0 ||
+        _badFormFrames < totalExercise * badThreshold;
     attemptCount++;
     if (goodRep) repCount++;
 

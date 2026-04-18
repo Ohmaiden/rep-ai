@@ -5,6 +5,16 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-18 (Form detection tuning — build 99)
+
+### Fixed
+- "Hips too low" false positives: front-view hip sag threshold relaxed from 0.12 → 0.20 of frame height; a floor-level portrait camera produces up to ~15% perspective offset even with a perfectly flat plank
+- Side-view hip sag thresholds relaxed (ankle reference: 0.06 → 0.09; shoulder-only fallback: 0.10 → 0.14) to stop penalising users with natural lumbar curve or a slightly elevated camera angle
+- Front-view head-dropping threshold relaxed from 0.15 → 0.20; the nose naturally dips below shoulder level at the bottom of a full-depth rep
+- Rep quality vote ratio changed from simple majority (bad ≥ good) to a clear-majority rule: a rep now only fails when bad-form frames exceed 60% of all exercise frames in portrait (55% in landscape) — isolated false-positive frames no longer flip an otherwise good rep
+
+---
+
 ## [2.6.0] — 2026-04-18 (What's New + Feedback — build 98)
 
 ### Added
