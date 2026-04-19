@@ -26,6 +26,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math';
 import '../models/workout_models.dart';
 import '../utils/geometry.dart';
 
@@ -75,9 +76,11 @@ class PushUpAnalyzer {
   double? _hipBottomValue; // deepest hip Y recorded during DOWN phase
   bool _hipCoActive = false; // true when hip visibility stayed good this rep
 
-  // Thresholds scale with torso length so sensitivity adapts to camera distance
-  double get _downThreshold => (_torsoLength ?? 0.15) * 0.15; // 15% of torso
-  double get _upThreshold   => (_torsoLength ?? 0.15) * 0.10; // 10% of torso
+  // Thresholds scale with torso length so sensitivity adapts to camera distance.
+  // Floor of 0.025 / 0.018 prevents micro-movements (head nods, pose jitter)
+  // from triggering state transitions when _torsoLength is small.
+  double get _downThreshold => max((_torsoLength ?? 0.15) * 0.15, 0.025);
+  double get _upThreshold   => max((_torsoLength ?? 0.15) * 0.10, 0.018);
 
   static double get _minVis => Platform.isIOS ? 0.35 : 0.4;
 
@@ -93,8 +96,10 @@ class PushUpAnalyzer {
   // Consecutive exercise frames needed in IDLE before we actually activate.
   // Prevents single-frame classifier blips (common on iPad where the form
   // classifier has more noise) from kicking off a fake rep cycle.
+  // Raised from 4 → 6 to require more ML confirmation before activating,
+  // reducing false starts from cat pose / stretching motions.
   int _idleExerciseStreak = 0;
-  static const int _idleActivationFrames = 4;
+  static const int _idleActivationFrames = 6;
 
   // ── Upside-down detection ────────────────────────────────────────────────────
   int _upsideDownFrames = 0;
@@ -350,6 +355,18 @@ class PushUpAnalyzer {
   void _finishRep(double currentSignal) {
     if (!_debouncer.canCount()) return;
 
+    // ── Minimum shoulder travel ─────────────────────────────────────────────
+    // Reject micro-movements: head nods, pose estimation jitter, and small
+    // weight shifts can produce a full UP→DOWN→UP cycle when thresholds are
+    // tiny. Require at least 3.5% of frame height of real shoulder movement.
+    if (_topValue != null && _bottomValue != null) {
+      final shoulderTravel = _bottomValue! - _topValue!;
+      if (shoulderTravel < 0.035) {
+        _goIdle();
+        return;
+      }
+    }
+
     // ── Stretch / cat-pose rejection ────────────────────────────────────────
     // In a real push-up the whole body translates as a rigid plank, so the hips
     // travel roughly the same vertical distance as the shoulders.
@@ -372,6 +389,17 @@ class PushUpAnalyzer {
         _goIdle();
         return;
       }
+    }
+
+    // ── Extreme elbow flare rejection ─────────────────────────────────────
+    // If the majority of frames had extreme elbow flare (>1.8× shoulder width,
+    // reported as 'Elbows dangerously flared'), reject the rep entirely —
+    // it's an injury risk pattern that shouldn't count even as a bad rep.
+    final extremeFlareVotes = _issueVotes['Elbows dangerously flared'] ?? 0;
+    final totalFormFrames = _goodFormFrames + _badFormFrames;
+    if (totalFormFrames > 0 && extremeFlareVotes > totalFormFrames * 0.40) {
+      _goIdle();
+      return;
     }
 
     // A rep is good unless bad frames are a clear majority of exercise frames.

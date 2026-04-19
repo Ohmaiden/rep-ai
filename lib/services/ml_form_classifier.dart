@@ -251,6 +251,20 @@ class MLFormClassifier {
       return const FormPrediction('not_exercise', 0.55, [0.1, 0.15, 0.75]);
     }
 
+    // ── 1b. Wrist-above-shoulder check (cat pose / stretch rejection) ──────
+    // In a push-up, wrists support body weight below or at shoulder level
+    // (wrist Y ≥ shoulder Y). In cat pose / chest-to-ground stretch, arms
+    // reach forward and wrists appear above shoulders in the frame (lower Y).
+    if (lW != null && rW != null) {
+      final wristVis = min(lW['visibility'] ?? 0.0, rW['visibility'] ?? 0.0);
+      if (wristVis > 0.2) {
+        final wristY = (lW['y']! + rW['y']!) / 2;
+        if (wristY < shoulderY - 0.06) {
+          return const FormPrediction('not_exercise', 0.7, [0.05, 0.1, 0.85]);
+        }
+      }
+    }
+
     // ── 2. Form quality checks ───────────────────────────────────────────────
     final issues = <String>[];
 
@@ -306,12 +320,16 @@ class MLFormClassifier {
         if (lEvis > 0.2 && rEvis > 0.2) {
           final elbowSpread = (lE['x']! - rE['x']!).abs();
           final shoulderWidth = (lS['x']! - rS['x']!).abs();
-          // Elbows spread > 2.0x shoulder width = excessive flare (bad form).
-          // Wide-grip push-ups sit at ~1.4–1.8x; truly flared elbows exceed 2.0x.
-          // Lowered from 2.5 → 2.0 so reps with badly flared elbows are marked
-          // bad_form (>60% bad frames → rep doesn't count as a good rep).
-          if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 2.0) {
-            issues.add('Arms too wide');
+          // Two-tier elbow flare detection:
+          //   ≥ 1.8× shoulder width → extreme flare, injury risk → reject rep
+          //   ≥ 1.5× shoulder width → moderate flare → bad form
+          // Wide-grip push-ups typically sit at ~1.3–1.5×.
+          if (shoulderWidth > 0.01) {
+            if (elbowSpread > shoulderWidth * 1.8) {
+              issues.add('Elbows dangerously flared');
+            } else if (elbowSpread > shoulderWidth * 1.5) {
+              issues.add('Arms too wide');
+            }
           }
         }
       }
