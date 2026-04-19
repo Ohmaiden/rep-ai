@@ -5,6 +5,17 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-19 (Head-only detection + splash dark mode — build 109/110)
+
+### Fixed
+- **Reps counted when head enters frame:** The geometric classifier's no-arm fallback was returning `good_form` when only head and shoulders were visible (no hips, no elbows/wrists detected). This caused the state machine to activate after just 4 frames of head visibility and count reps from head movement. Fix: when neither arm landmarks nor hip landmarks are visible (hipVis < 0.2), classifier returns `not_exercise` — tracking only activates once the full body is in frame
+- **Splash screen ignores dark mode (Android):** `NormalTheme.windowBackground` was `?android:colorBackground` (system default, white in light mode), causing a white flash between the launch theme and Flutter's first frame. Changed to `@color/splash_background` so the night qualifier is honoured
+- **Splash screen colour mismatch:** Dark splash colour was `#0F172A` on both platforms but Flutter's dark `scaffoldBackgroundColor` is `#1A1A2E` — visible jump on launch. Both corrected to `#1A1A2E`
+- **iOS splash ignores dark mode:** Storyboard was referencing the colour by asset name (`name="SplashBackground"`) which can silently fall back to white if asset catalog resolution fails. Replaced with an inline `<variation key="dark">` colour pair embedded directly in the storyboard — the format Xcode generates natively, guaranteed to work
+- **Flutter splash bridge:** Added `_SplashBridge` widget that paints a solid background overlay on Flutter's first frame and fades out in 200ms. Covers the case where the in-app theme (set in Settings) differs from the system dark mode — the native splash can't read in-app preferences but the bridge ensures no flash regardless
+
+---
+
 ## [2.6.0] — 2026-04-19 (Splash dark mode + cat pose + elbow flare — build 107)
 
 ### Fixed
