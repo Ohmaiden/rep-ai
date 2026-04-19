@@ -67,6 +67,13 @@ class PushUpAnalyzer {
   // Lowest point tracking during DOWN phase
   double? _bottomValue;
 
+  // Hip sag tracking during DOWN phase (Change 2: detect humping)
+  double? _hipYAtDownStart;  // hip Y when DOWN phase begins
+  double? _hipYAtDownBottom; // max hip Y seen during DOWN phase
+
+  // Elbow angle tracking during DOWN phase (Change 3: reject shallow reps)
+  double? _minElbowAngleDuringDown; // tracks how deep elbows bent during rep
+
   // Thresholds scale with torso length so sensitivity adapts to camera distance.
   // Floor of 0.025 / 0.018 prevents micro-movements (head nods, pose jitter)
   // from triggering state transitions when _torsoLength is small.
@@ -234,8 +241,18 @@ class PushUpAnalyzer {
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
         } else if (isExercise && _topValue != null && signal > _topValue! + _downThreshold) {
+          // Seed hip Y at the start of the DOWN phase
+          final lH = landmarks['LEFT_HIP'];
+          final rH = landmarks['RIGHT_HIP'];
+          if (lH != null && rH != null) {
+            final hv = ((lH['visibility'] ?? 0.0) + (rH['visibility'] ?? 0.0)) / 2;
+            if (hv >= _minVis) {
+              _hipYAtDownStart = (lH['y']! + rH['y']!) / 2;
+            }
+          }
           phase = ExercisePhase.down;
           _bottomValue = signal;
+          _hipYAtDownBottom = _hipYAtDownStart; // seed
         }
 
       case ExercisePhase.down:
@@ -244,6 +261,25 @@ class PushUpAnalyzer {
           _bottomValue = signal;
         } else if (signal > _bottomValue!) {
           _bottomValue = signal;
+        }
+
+        // Track hip Y during DOWN phase (for humping detection)
+        final lHd = landmarks['LEFT_HIP'];
+        final rHd = landmarks['RIGHT_HIP'];
+        if (lHd != null && rHd != null) {
+          final hv = ((lHd['visibility'] ?? 0.0) + (rHd['visibility'] ?? 0.0)) / 2;
+          if (hv >= _minVis) {
+            final hipY = (lHd['y']! + rHd['y']!) / 2;
+            _hipYAtDownBottom = (_hipYAtDownBottom == null) ? hipY : max(_hipYAtDownBottom!, hipY);
+          }
+        }
+
+        // Track minimum elbow angle during DOWN phase (for shallow rep detection)
+        final elbowAngle = _computeElbowAngle(landmarks);
+        if (elbowAngle != null) {
+          if (_minElbowAngleDuringDown == null || elbowAngle < _minElbowAngleDuringDown!) {
+            _minElbowAngleDuringDown = elbowAngle;
+          }
         }
 
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
@@ -302,6 +338,9 @@ class PushUpAnalyzer {
     _nullFormFrames = 0;
     _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
+    _hipYAtDownStart = null;
+    _hipYAtDownBottom = null;
+    _minElbowAngleDuringDown = null;
     _issueVotes.clear();
   }
 
@@ -320,6 +359,12 @@ class PushUpAnalyzer {
       }
     }
 
+    // ── Reject shallow reps silently (don't count, don't record as bad) ───
+    if (_minElbowAngleDuringDown != null && _minElbowAngleDuringDown! > 150.0) {
+      _goIdle();
+      return;
+    }
+
     // A rep is good unless bad frames are a clear majority of exercise frames.
     // Bad must exceed 60% of frames to fail the rep — isolated false-positive
     // frames (e.g. a couple of hip-sag detections mid-rep) no longer flip an
@@ -330,8 +375,21 @@ class PushUpAnalyzer {
     final badThreshold = _isLandscape ? 0.55 : 0.60;
     final goodRep = totalExercise == 0 ||
         _badFormFrames < totalExercise * badThreshold;
+
+    // ── Humping detection: hips dropping significantly during DOWN phase ───
+    bool humpingDetected = false;
+    if (_hipYAtDownStart != null && _hipYAtDownBottom != null &&
+        _topValue != null && _bottomValue != null) {
+      final hipDrop = _hipYAtDownBottom! - _hipYAtDownStart!;
+      final shoulderDrop = (_bottomValue! - _topValue!).abs();
+      if (hipDrop > 0.04 && shoulderDrop > 0 && hipDrop > shoulderDrop * 0.60) {
+        humpingDetected = true;
+      }
+    }
+
     attemptCount++;
-    if (goodRep) repCount++;
+    final repGood = goodRep && !humpingDetected;
+    if (repGood) repCount++;
 
     // Pick the top issues by vote count (minimum 2 frames to avoid noise)
     final topIssues = (_issueVotes.entries.toList()
@@ -340,17 +398,20 @@ class PushUpAnalyzer {
         .take(2)
         .map((e) => e.key)
         .toList();
+    if (humpingDetected && !topIssues.contains('Hips dropping')) {
+      topIssues.insert(0, 'Hips dropping');
+    }
 
-    lastRepValid    = goodRep;
+    lastRepValid    = repGood;
     lastRepTime     = DateTime.now();
-    lastRepFeedback = goodRep
+    lastRepFeedback = repGood
         ? ['Good rep!']
         : (topIssues.isNotEmpty ? topIssues : ['Work on form']);
 
     repHistory.add(RepResult(
       repNumber: attemptCount,
-      goodForm:  goodRep,
-      issues:    goodRep ? [] : (topIssues.isNotEmpty ? topIssues : ['Bad form']),
+      goodForm:  repGood,
+      issues:    repGood ? [] : (topIssues.isNotEmpty ? topIssues : ['Bad form']),
       repDuration: Duration.zero,
     ));
 
@@ -360,6 +421,9 @@ class PushUpAnalyzer {
     _bottomValue = null;
     _goodFormFrames = 0;
     _badFormFrames  = 0;
+    _hipYAtDownStart = null;
+    _hipYAtDownBottom = null;
+    _minElbowAngleDuringDown = null;
     _issueVotes.clear();
   }
 
@@ -458,6 +522,40 @@ class PushUpAnalyzer {
     _nullFormFrames = 0;
     _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
+    _hipYAtDownStart = null;
+    _hipYAtDownBottom = null;
+    _minElbowAngleDuringDown = null;
     _issueVotes.clear();
+  }
+
+  // ── Elbow angle helpers ──────────────────────────────────────────────────
+
+  /// Computes the elbow angle (shoulder-elbow-wrist) from visible landmarks.
+  /// Returns the angle in degrees, or null if no arm is visible enough.
+  double? _computeElbowAngle(Map<String, Map<String, double>> landmarks) {
+    final lS = landmarks['LEFT_SHOULDER'];
+    final lE = landmarks['LEFT_ELBOW'];
+    final lW = landmarks['LEFT_WRIST'];
+    final rS = landmarks['RIGHT_SHOULDER'];
+    final rE = landmarks['RIGHT_ELBOW'];
+    final rW = landmarks['RIGHT_WRIST'];
+
+    // Try left arm first, then right
+    for (final (s, e, w) in [(lS, lE, lW), (rS, rE, rW)]) {
+      if (s == null || e == null || w == null) continue;
+      final vis = min(e['visibility'] ?? 0.0, w['visibility'] ?? 0.0);
+      if (vis < _minVis) continue;
+      return _angleDeg(s, e, w);
+    }
+    return null;
+  }
+
+  double _angleDeg(Map<String, double> a, Map<String, double> b, Map<String, double> c) {
+    final ax = a['x']! - b['x']!; final ay = a['y']! - b['y']!;
+    final cx = c['x']! - b['x']!; final cy = c['y']! - b['y']!;
+    final dot = ax * cx + ay * cy;
+    final mag = sqrt(ax * ax + ay * ay) * sqrt(cx * cx + cy * cy);
+    if (mag < 1e-6) return 180.0;
+    return acos((dot / mag).clamp(-1.0, 1.0)) * 180 / pi;
   }
 }

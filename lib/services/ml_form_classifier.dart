@@ -278,8 +278,10 @@ class MLFormClassifier {
       final rEvis = rE['visibility'] ?? 0.0;
       if (lEvis > 0.2 && rEvis > 0.2) {
         final elbowSpread  = (lE['x']! - rE['x']!).abs();
-        final shoulderWidth = (lS['x']! - rS['x']!).abs();
-        if (shoulderWidth > 0.01 && elbowSpread >= shoulderWidth) {
+        final wristSpread  = (lW!['x']! - rW!['x']!).abs();
+        // Flared: elbows are significantly wider than the wrists
+        // Wide push-up: both elbows and wrists are wide — don't flag
+        if (wristSpread > 0.01 && elbowSpread > wristSpread * 1.5) {
           issues.add('Elbows flared out');
         }
       }
