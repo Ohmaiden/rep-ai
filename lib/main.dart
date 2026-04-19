@@ -303,9 +303,14 @@ class _SplashBridgeState extends State<_SplashBridge>
     return Stack(
       children: [
         widget.child,
-        FadeTransition(
-          opacity: ReverseAnimation(_opacity),
-          child: ColoredBox(color: bg, child: const SizedBox.expand()),
+        // IgnorePointer ensures the colour overlay never absorbs touches,
+        // even when FadeTransition has reduced it to opacity 0 (FadeTransition
+        // does NOT disable hit-testing at zero opacity the way Opacity does).
+        IgnorePointer(
+          child: FadeTransition(
+            opacity: ReverseAnimation(_opacity),
+            child: ColoredBox(color: bg, child: const SizedBox.expand()),
+          ),
         ),
       ],
     );

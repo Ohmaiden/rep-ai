@@ -196,9 +196,9 @@ class HomeScreenState extends State<HomeScreen> {
 
   String _getGreeting() {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
   }
 
   void _showHelp() {
