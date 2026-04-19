@@ -23,7 +23,11 @@
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
-                        <color key="backgroundColor" name="SplashBackground"/>
+                        <color key="backgroundColor" red="0.97254901960784315" green="0.98039215686274506" blue="0.98823529411764703" alpha="1" colorSpace="custom" customColorSpace="sRGB">
+                            <variation key="dark">
+                                <color red="0.10196078431372549" green="0.10196078431372549" blue="0.18039215686274512" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            </variation>
+                        </color>
                         <constraints>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-30" id="4X2-HB-R7a"/>
