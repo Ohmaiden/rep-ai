@@ -5,6 +5,36 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-19 (Onboarding auth + music-friendly audio — build 105)
+
+### Added
+- Onboarding now has 10 pages: new account page (page 9) between Goals and "You're all set"
+  - Offers Google sign-in, Apple sign-in (iOS only), and email sign-in / create account toggle
+  - "Skip for now" link at the bottom for users who don't want an account
+  - Shows a confirmation card if the user is already signed in
+- Audio settings accessible from the Workout hub: speaker icon in the header opens a bottom sheet with a mute toggle and a music-tip hint card
+- Mute preference now persists to SharedPreferences — survives app restart
+
+### Changed
+- `WorkoutAudioService` elevated from a local workout-screen object to a root `ChangeNotifier` provider; mute state is now shared across workout hub, workout screen, and workout summary
+- Workout-complete (triumph) SFX on the summary screen respects the mute toggle set during the workout — if muted during the session, no sound on summary
+- Audio session configured for music-friendly mixing:
+  - iOS: `AVAudioSessionCategory.ambient` + `mixWithOthers` — rep SFX plays over Spotify/Apple Music without interrupting or ducking it
+  - Android: `gainTransientMayDuck` — briefly lowers other audio while SFX plays, then restores automatically
+
+---
+
+## [2.6.0] — 2026-04-19 (Push-up detection reliability — build 103)
+
+### Fixed
+- **Tracking stops mid-set (main bug):** A single `not_exercise` frame during a rep was calling `_goIdle()`, wiping all position tracking and resetting the state machine. During fast reps the geometric classifier can flicker to `not_exercise` for 1–2 frames (nose/shoulder relationship momentarily misread). Now requires **4 consecutive `not_exercise` frames** before going idle
+- **Head position kills tracking:** `noseAboveShoulders > 0.20` threshold was returning `not_exercise` when the nose was only 20% above shoulders in the frame — easily triggered by looking at the camera or tilting the head during a push-up. Raised to `> 0.35`
+- **Close camera kills tracking:** `shoulderY < 0.30` flagged the person as standing if shoulders appeared in the top 30% of the frame. With the phone on the floor, shoulders can sit at 0.22–0.28 mid-rep. Lowered to `< 0.18`
+- **Knee push-ups silently rejected:** Hip co-movement check required hips to travel at least 40% of shoulder travel. Knee push-ups pivot at the knees so hips travel roughly 15–25% as much as the shoulders. Threshold lowered from 0.40 → 0.20 (still rejects lying cat/cow stretches where hips barely move)
+- **Wide-grip flagged as bad form:** `elbowSpread > 1.8× shoulderWidth` was marking wide-grip push-ups as "Arms too wide". Threshold raised to 2.5× — only extreme/unintentional flaring is flagged now
+
+---
+
 ## [2.6.0] — 2026-04-18 (Shelf landscape/side-view paths — build 100)
 
 ### Changed
