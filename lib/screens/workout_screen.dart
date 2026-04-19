@@ -51,8 +51,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   int _lastRepHistoryLen = 0;            // used to detect when a new rep finishes
   bool _capturingFrame = false;
 
-  // Audio & haptic
-  final WorkoutAudioService _audio = WorkoutAudioService();
+  // Audio & haptic — resolved from provider in initState
+  late WorkoutAudioService _audio;
   int _lastAttemptCount = 0;
 
   // No-pose hint
@@ -123,6 +123,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       CurvedAnimation(parent: _upsideDownPulseController, curve: Curves.easeInOut),
     );
 
+    _audio = context.read<WorkoutAudioService>();
     _audio.init().then((_) {
       if (mounted) {
         context.read<WorkoutState>().setAudioService(_audio);
@@ -152,7 +153,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     _loadingPulseController.dispose();
     _upsideDownSpinController.dispose();
     _upsideDownPulseController.dispose();
-    _audio.dispose();
+    // _audio is a root provider — do not dispose here.
     super.dispose();
   }
 
@@ -775,14 +776,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             GestureDetector(
-                              onTap: () =>
-                                  setState(() => _audio.toggleMute()),
-                              child: Icon(
-                                _audio.isMuted
-                                    ? Icons.volume_off_rounded
-                                    : Icons.volume_up_rounded,
-                                color: Colors.white.withValues(alpha: 0.6),
-                                size: 22,
+                              onTap: () => _audio.toggleMute(),
+                              child: Consumer<WorkoutAudioService>(
+                                builder: (_, audio, __) => Icon(
+                                  audio.isMuted
+                                      ? Icons.volume_off_rounded
+                                      : Icons.volume_up_rounded,
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  size: 22,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),

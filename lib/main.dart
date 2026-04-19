@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/audio_service.dart';
 import 'services/database_service.dart';
 import 'services/workout_state.dart';
 import 'services/theme_provider.dart';
@@ -44,6 +45,11 @@ void main() async {
   final syncService = CloudSyncService(authService: authService, db: dbService);
   authService.setOnSignIn(() => syncService.pullAndMerge());
 
+  // Audio service — shared provider so workout hub, workout screen, and summary
+  // screen all see the same mute state.
+  final audioService = WorkoutAudioService();
+  await audioService.loadMuted();
+
   runApp(
     MultiProvider(
       providers: [
@@ -52,6 +58,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider(savedTheme)),
         ChangeNotifierProvider<AuthService>.value(value: authService),
         Provider<CloudSyncService>.value(value: syncService),
+        ChangeNotifierProvider<WorkoutAudioService>.value(value: audioService),
       ],
       child: RepCounterApp(showOnboarding: !onboardingDone),
     ),

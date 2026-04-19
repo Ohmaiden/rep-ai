@@ -7,9 +7,10 @@
 library;
 
 import 'dart:math' as math;
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/workout_models.dart';
+import '../services/audio_service.dart';
 
 // ── Confetti particle data ────────────────────────────────────────────────────
 
@@ -139,9 +140,9 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen>
       );
     });
 
-    final player = AudioPlayer();
-    player.play(AssetSource('sounds/set_complete.mp3'));
-    player.onPlayerComplete.listen((_) => player.dispose());
+    // Use the shared audio service so mute state from the workout is respected,
+    // and music-mixing audio context is already configured.
+    context.read<WorkoutAudioService>().playTriumph();
 
     _confettiController.forward();
   }

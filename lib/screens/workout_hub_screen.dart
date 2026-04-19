@@ -8,11 +8,22 @@ library;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import '../services/audio_service.dart';
 import '../services/workout_state.dart';
 import 'exercise_guide_screen.dart';
 
 class WorkoutHubScreen extends StatelessWidget {
   const WorkoutHubScreen({super.key});
+
+  void _showAudioSettings(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => const _AudioSettingsSheet(),
+    );
+  }
 
   Future<void> _launchWorkout(BuildContext context, {bool setup = false}) async {
     final status = await Permission.camera.request();
@@ -97,7 +108,29 @@ class WorkoutHubScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Workout', style: theme.textTheme.headlineLarge),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Workout',
+                            style: theme.textTheme.headlineLarge),
+                      ),
+                      Consumer<WorkoutAudioService>(
+                        builder: (_, audio, __) => IconButton(
+                          onPressed: () => _showAudioSettings(context),
+                          icon: Icon(
+                            audio.isMuted
+                                ? Icons.volume_off_rounded
+                                : Icons.volume_up_rounded,
+                            color: audio.isMuted
+                                ? theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.4)
+                                : const Color(0xFF2563EB),
+                          ),
+                          tooltip: 'Sound settings',
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Select an exercise to get started',
@@ -299,6 +332,101 @@ class _ExerciseOptionsSheet extends StatelessWidget {
                           fontSize: 16, fontWeight: FontWeight.w600)),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Audio settings sheet ───────────────────────────────────────────────────────
+
+class _AudioSettingsSheet extends StatelessWidget {
+  const _AudioSettingsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sound',
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Adjust workout sound effects.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+
+          Consumer<WorkoutAudioService>(
+            builder: (ctx, audio, __) => Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: SwitchListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                title: Text(
+                  'Sound effects',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  audio.isMuted
+                      ? 'Rep dings and alerts are off'
+                      : 'Rep dings and alerts are on',
+                  style: theme.textTheme.bodySmall,
+                ),
+                secondary: Icon(
+                  audio.isMuted
+                      ? Icons.volume_off_rounded
+                      : Icons.volume_up_rounded,
+                  color: audio.isMuted
+                      ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
+                      : const Color(0xFF2563EB),
+                ),
+                value: !audio.isMuted,
+                activeThumbColor: const Color(0xFF2563EB),
+                activeTrackColor:
+                    const Color(0xFF2563EB).withValues(alpha: 0.4),
+                onChanged: (_) => audio.toggleMute(),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Music tip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.music_note_rounded,
+                    size: 18, color: Color(0xFF2563EB)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Rep dings play over your music without pausing it. '
+                    'The workout-complete sound may briefly lower your music volume.',
+                    style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -1,26 +1,69 @@
 /// Audio Service
 /// ==============
 /// Plays sound effects for workout feedback.
-/// Creates fresh AudioPlayer instances per play call to avoid pool exhaustion.
-/// Uses mp3 assets if available, otherwise generates tones programmatically.
+/// Registered as a ChangeNotifier provider so mute state is shared across
+/// workout hub, workout screen, and workout summary.
+///
+/// Audio context is configured for music-friendly mixing:
+///   iOS  — AVAudioSessionCategory.ambient + mixWithOthers
+///           SFX plays over background music without interrupting it.
+///   Android — gainTransientMayDuck: briefly lowers other audio, then restores.
 library;
 
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class WorkoutAudioService {
+class WorkoutAudioService extends ChangeNotifier {
   bool _muted = false;
   bool _useAssets = false;
 
   Uint8List? _goodWav;
   Uint8List? _badWav;
 
+  static const String _muteKey = 'sfx_muted';
+
   bool get isMuted => _muted;
 
-  void toggleMute() => _muted = !_muted;
+  /// Load persisted mute preference from SharedPreferences.
+  Future<void> loadMuted() async {
+    final prefs = await SharedPreferences.getInstance();
+    _muted = prefs.getBool(_muteKey) ?? false;
+    notifyListeners();
+  }
+
+  void toggleMute() {
+    _muted = !_muted;
+    notifyListeners();
+    SharedPreferences.getInstance()
+        .then((p) => p.setBool(_muteKey, _muted))
+        .catchError((_) => false);
+  }
 
   Future<void> init() async {
+    // Configure global audio context so SFX mixes with background music.
+    // On iOS: ambient + mixWithOthers lets SFX play over Spotify/Apple Music.
+    // On Android: gainTransientMayDuck briefly ducks other audio then restores.
+    try {
+      await AudioPlayer.global.setAudioContext(
+        AudioContext(
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.ambient,
+            options: const {AVAudioSessionOptions.mixWithOthers},
+          ),
+          android: const AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: false,
+            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+          ),
+        ),
+      );
+    } catch (_) {
+      // setAudioContext not supported on this platform — ignore.
+    }
+
     try {
       final testPlayer = AudioPlayer();
       await testPlayer.setSource(AssetSource('sounds/good_rep.mp3'));
@@ -56,6 +99,13 @@ class WorkoutAudioService {
     _playFresh('sounds/set_complete.mp3');
   }
 
+  /// Plays the workout-complete (triumph) SFX.
+  /// Respects the mute toggle — if the user muted during the workout, no sound.
+  void playTriumph() {
+    if (_muted) return;
+    _playFresh('sounds/set_complete.mp3');
+  }
+
   /// Create a fresh player, play, auto-dispose on complete.
   void _playFresh(String asset) {
     final player = AudioPlayer();
@@ -69,8 +119,10 @@ class WorkoutAudioService {
     player.onPlayerComplete.listen((_) => player.dispose());
   }
 
+  @override
   void dispose() {
-    // Nothing to dispose — fresh players self-dispose
+    // Fresh players self-dispose — nothing to clean up here.
+    super.dispose();
   }
 
   // ── Fallback generated tones ──────────────────────────────────────────
