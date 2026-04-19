@@ -85,6 +85,11 @@ class PushUpAnalyzer {
   int _nullFormFrames = 0;
   static const int _maxNullFormFrames = 12;
 
+  // Consecutive not_exercise frames needed before going idle mid-rep.
+  // A single flickered frame (common during fast reps) no longer resets state.
+  int _notExerciseFrames = 0;
+  static const int _maxNotExerciseFrames = 4;
+
   // Consecutive exercise frames needed in IDLE before we actually activate.
   // Prevents single-frame classifier blips (common on iPad where the form
   // classifier has more noise) from kicking off a fake rep cycle.
@@ -210,6 +215,14 @@ class PushUpAnalyzer {
       _nullFormFrames = 0;
     }
 
+    // Track consecutive not_exercise frames — a brief flicker during fast reps
+    // should not reset the state machine. Require a sustained streak first.
+    if (mlFormLabel == 'not_exercise') {
+      _notExerciseFrames++;
+    } else {
+      _notExerciseFrames = 0;
+    }
+
     // ── 4. State machine ────────────────────────────────────────────────────
     switch (phase) {
       case ExercisePhase.idle:
@@ -248,7 +261,7 @@ class PushUpAnalyzer {
           _hipTopValue = null;
         }
 
-        if (mlFormLabel == 'not_exercise' || _nullFormFrames >= _maxNullFormFrames) {
+        if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
         } else if (isExercise && _topValue != null && signal > _topValue! + _downThreshold) {
           phase = ExercisePhase.down;
@@ -273,7 +286,7 @@ class PushUpAnalyzer {
           _hipCoActive = false; // lost hip — skip check
         }
 
-        if (mlFormLabel == 'not_exercise' || _nullFormFrames >= _maxNullFormFrames) {
+        if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
         } else if (isExercise && _bottomValue != null && signal < _bottomValue! - _upThreshold) {
           // Rising back up from bottom → rep complete
@@ -327,6 +340,7 @@ class PushUpAnalyzer {
     _goodFormFrames = 0;
     _badFormFrames  = 0;
     _nullFormFrames = 0;
+    _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
     _issueVotes.clear();
     _hipTopValue    = null;
@@ -352,8 +366,10 @@ class PushUpAnalyzer {
         _bottomValue != null) {
       final shoulderTravel = _bottomValue! - _topValue!;
       final hipTravel = (_hipBottomValue! - _hipTopValue!).abs();
-      if (shoulderTravel >= _downThreshold && hipTravel < shoulderTravel * 0.40) {
-        // Hips stayed still — discard as a stretch, not a push-up.
+      if (shoulderTravel >= _downThreshold && hipTravel < shoulderTravel * 0.20) {
+        // Hips stayed completely still — discard as a stretch, not a push-up.
+        // 0.20 (was 0.40) allows knee push-ups where hips pivot at the knees
+        // and travel less relative to the shoulders.
         _goIdle();
         return;
       }
@@ -498,6 +514,7 @@ class PushUpAnalyzer {
     latestMetrics   = PoseMetrics();
     _upsideDownFrames = 0;
     _nullFormFrames = 0;
+    _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
     _issueVotes.clear();
     _hipSmoother.reset();

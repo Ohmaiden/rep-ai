@@ -233,16 +233,21 @@ class MLFormClassifier {
       }
     }
 
-    // Nose way above shoulders = upright, not in push-up position
+    // Nose way above shoulders = upright, not in push-up position.
+    // Threshold raised from 0.20 → 0.35: looking at the camera during a push-up
+    // (natural) or doing knee push-ups with head tilted up can put the nose
+    // 0.15–0.25 above shoulders without it being a standing position.
     if (nose != null) {
       final noseAboveShoulders = shoulderY - nose['y']!;
-      if (noseAboveShoulders > 0.20) {
+      if (noseAboveShoulders > 0.35) {
         return const FormPrediction('not_exercise', 0.7, [0.05, 0.1, 0.85]);
       }
     }
 
-    // Shoulders high in frame = standing/sitting
-    if (shoulderY < 0.3) {
+    // Shoulders high in frame = standing/sitting.
+    // Threshold lowered from 0.30 → 0.18: a close camera on the floor can put
+    // shoulders at 0.20–0.28 even during a genuine push-up.
+    if (shoulderY < 0.18) {
       return const FormPrediction('not_exercise', 0.55, [0.1, 0.15, 0.75]);
     }
 
@@ -301,8 +306,10 @@ class MLFormClassifier {
         if (lEvis > 0.2 && rEvis > 0.2) {
           final elbowSpread = (lE['x']! - rE['x']!).abs();
           final shoulderWidth = (lS['x']! - rS['x']!).abs();
-          // Elbows spread > 1.8x shoulder width = excessive flare
-          if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 1.8) {
+          // Elbows spread > 2.5x shoulder width = excessive flare.
+          // Raised from 1.8 → 2.5: wide-grip push-ups intentionally have elbows
+          // well outside the shoulders and should not be flagged as bad form.
+          if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 2.5) {
             issues.add('Arms too wide');
           }
         }
