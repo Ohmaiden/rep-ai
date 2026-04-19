@@ -321,7 +321,14 @@ class MLFormClassifier {
           : const FormPrediction('good_form', 0.65, [0.1, 0.65, 0.25]);
     }
 
-    // No arm data but passed not-exercise checks — allow cautiously.
+    // No arm data — only accept as exercise if hips are also visible,
+    // which confirms the person is in a horizontal/push-up position.
+    // Head + shoulders only (no hips, no arms) is ambiguous and commonly
+    // triggers when just the face enters the frame — return not_exercise
+    // so the state machine stays idle until the full body is in view.
+    if (hipVis < 0.2) {
+      return const FormPrediction('not_exercise', 0.7, [0.05, 0.05, 0.9]);
+    }
     return issues.isNotEmpty
         ? FormPrediction('bad_form', 0.5, [0.5, 0.15, 0.35], issues: issues)
         : const FormPrediction('good_form', 0.5, [0.15, 0.5, 0.35]);

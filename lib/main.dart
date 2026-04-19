@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,6 +51,15 @@ void main() async {
   final audioService = WorkoutAudioService();
   await audioService.loadMuted();
 
+  // Determine whether the app will start in dark mode so the Flutter-level
+  // splash bridge can show the right background immediately, covering any
+  // light flash that the native splash or NormalTheme window background
+  // would otherwise cause when the in-app theme differs from system.
+  final bool startsDark = savedTheme == 'dark' ||
+      (savedTheme != 'light' &&
+          SchedulerBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark);
+
   runApp(
     MultiProvider(
       providers: [
@@ -60,15 +70,20 @@ void main() async {
         Provider<CloudSyncService>.value(value: syncService),
         ChangeNotifierProvider<WorkoutAudioService>.value(value: audioService),
       ],
-      child: RepCounterApp(showOnboarding: !onboardingDone),
+      child: RepCounterApp(showOnboarding: !onboardingDone, startsDark: startsDark),
     ),
   );
 }
 
 class RepCounterApp extends StatelessWidget {
   final bool showOnboarding;
+  final bool startsDark;
 
-  const RepCounterApp({super.key, required this.showOnboarding});
+  const RepCounterApp({
+    super.key,
+    required this.showOnboarding,
+    required this.startsDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +95,10 @@ class RepCounterApp extends StatelessWidget {
       theme: ThemeProvider.lightTheme,
       darkTheme: ThemeProvider.darkTheme,
       themeMode: themeProvider.mode,
-      home: showOnboarding ? const OnboardingScreen() : const MainShell(),
+      home: _SplashBridge(
+        isDark: startsDark,
+        child: showOnboarding ? const OnboardingScreen() : const MainShell(),
+      ),
       onGenerateRoute: _generateRoute,
     );
   }
@@ -230,6 +248,66 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Splash bridge — hides native→Flutter colour mismatch ───────────────────
+// The native launch screen can only follow the OS dark-mode setting, not the
+// in-app theme preference. This widget paints a solid overlay matching the
+// correct scaffold colour on the very first frame, then fades out in ~200ms.
+// Result: no jarring flash regardless of whether system and in-app themes agree.
+
+class _SplashBridge extends StatefulWidget {
+  final bool isDark;
+  final Widget child;
+
+  const _SplashBridge({required this.isDark, required this.child});
+
+  @override
+  State<_SplashBridge> createState() => _SplashBridgeState();
+}
+
+class _SplashBridgeState extends State<_SplashBridge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+
+  static const _lightBg = Color(0xFFF8FAFC);
+  static const _darkBg = Color(0xFF1A1A2E);
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    // Start fade-out on the next frame so the overlay is visible for exactly
+    // one painted frame, then smoothly dissolves.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.isDark ? _darkBg : _lightBg;
+    return Stack(
+      children: [
+        widget.child,
+        FadeTransition(
+          opacity: ReverseAnimation(_opacity),
+          child: ColoredBox(color: bg, child: const SizedBox.expand()),
+        ),
+      ],
     );
   }
 }
