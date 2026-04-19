@@ -5,6 +5,17 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-19 (Splash dark mode + cat pose + elbow flare — build 107)
+
+### Fixed
+- **Splash screen always light:** Launch screen was hardcoded to light colours regardless of device/system dark mode setting
+  - Android: added `values-night/colors.xml` with dark splash background (`#0F172A`); corrected `drawable-v21/launch_background.xml` to use `@color/splash_background` and restored the launch icon
+  - iOS: created `SplashBackground.colorset` with explicit light (`#F8FAFC`) and dark (`#0F172A`) variants; updated `LaunchScreen.storyboard` to reference the named color asset instead of `systemBackgroundColor`
+- **Cat pose on knees counted as a rep:** `_hipCoActive` flag was set to `false` on a single frame of poor hip landmark visibility, silently disabling the hip co-movement check for the rest of the rep. The check now retains its accumulated values across brief tracking gaps — cat/stretch still rejected, knee push-ups still pass
+- **Badly flared elbows counted as reps:** Elbow-spread threshold was `2.5× shoulderWidth` — too permissive for genuinely flared elbows (shoulders splayed out to the sides). Lowered to `2.0×`; wide-grip push-ups sit at ~1.4–1.8× and are unaffected
+
+---
+
 ## [2.6.0] — 2026-04-19 (Onboarding auth + music-friendly audio — build 105)
 
 ### Added
