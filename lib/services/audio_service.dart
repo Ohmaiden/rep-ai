@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class WorkoutAudioService extends ChangeNotifier {
   bool _muted = false;
   bool _useAssets = false;
+  bool _initialized = false;
 
   Uint8List? _goodWav;
   Uint8List? _badWav;
@@ -43,14 +44,17 @@ class WorkoutAudioService extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    // Configure global audio context so SFX mixes with background music.
-    // On iOS: ambient + mixWithOthers lets SFX play over Spotify/Apple Music.
+    if (_initialized) return;
+    _initialized = true;
+
+    // Use playback + mixWithOthers so sounds play regardless of iOS mute switch
+    // while still mixing over background music.
     // On Android: gainTransientMayDuck briefly ducks other audio then restores.
     try {
       await AudioPlayer.global.setAudioContext(
         AudioContext(
           iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.ambient,
+            category: AVAudioSessionCategory.playback,
             options: const {AVAudioSessionOptions.mixWithOthers},
           ),
           android: const AudioContextAndroid(
@@ -60,9 +64,7 @@ class WorkoutAudioService extends ChangeNotifier {
           ),
         ),
       );
-    } catch (_) {
-      // setAudioContext not supported on this platform — ignore.
-    }
+    } catch (_) {}
 
     try {
       final testPlayer = AudioPlayer();
