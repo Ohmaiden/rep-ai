@@ -3,6 +3,7 @@
 /// Main entry point. Sets up themes, providers, and navigation.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -55,7 +56,9 @@ void main() async {
   // splash bridge can show the right background immediately, covering any
   // light flash that the native splash or NormalTheme window background
   // would otherwise cause when the in-app theme differs from system.
-  final bool startsDark = savedTheme == 'dark' ||
+  // iOS always uses dark mode for load screen (hardcoded).
+  final bool startsDark = Platform.isIOS ||
+      savedTheme == 'dark' ||
       (savedTheme != 'light' &&
           SchedulerBinding.instance.platformDispatcher.platformBrightness ==
               Brightness.dark);
