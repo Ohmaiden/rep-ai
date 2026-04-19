@@ -306,10 +306,11 @@ class MLFormClassifier {
         if (lEvis > 0.2 && rEvis > 0.2) {
           final elbowSpread = (lE['x']! - rE['x']!).abs();
           final shoulderWidth = (lS['x']! - rS['x']!).abs();
-          // Elbows spread > 2.5x shoulder width = excessive flare.
-          // Raised from 1.8 → 2.5: wide-grip push-ups intentionally have elbows
-          // well outside the shoulders and should not be flagged as bad form.
-          if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 2.5) {
+          // Elbows spread > 2.0x shoulder width = excessive flare (bad form).
+          // Wide-grip push-ups sit at ~1.4–1.8x; truly flared elbows exceed 2.0x.
+          // Lowered from 2.5 → 2.0 so reps with badly flared elbows are marked
+          // bad_form (>60% bad frames → rep doesn't count as a good rep).
+          if (shoulderWidth > 0.01 && elbowSpread > shoulderWidth * 2.0) {
             issues.add('Arms too wide');
           }
         }

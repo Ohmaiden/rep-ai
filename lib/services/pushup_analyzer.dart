@@ -249,17 +249,16 @@ class PushUpAnalyzer {
           if (signal < _topValue!) _topValue = signal;
         }
 
-        // Track hip "top" in parallel — take the minimum (highest) hip Y seen
+        // Track hip "top" in parallel — take the minimum (highest) hip Y seen.
+        // A brief loss of hip visibility (one bad frame) no longer cancels the
+        // co-movement check — we keep the best value recorded so far.
         if (hipSignal != null) {
           _hipCoActive = true;
           if (_hipTopValue == null || (_upFrameCount <= 8 && hipSignal < _hipTopValue!)) {
             _hipTopValue = hipSignal;
           }
-        } else {
-          // Lost hip tracking — disable co-movement check for this rep
-          _hipCoActive = false;
-          _hipTopValue = null;
         }
+        // If hipSignal is null: retain _hipCoActive and _hipTopValue as-is.
 
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
@@ -277,14 +276,14 @@ class PushUpAnalyzer {
           _bottomValue = signal;
         }
 
-        // Track hip "bottom" in parallel
+        // Track hip "bottom" in parallel.
+        // Brief visibility drops don't cancel the check — keep the best value.
         if (hipSignal != null && _hipCoActive) {
           if (_hipBottomValue == null || hipSignal > _hipBottomValue!) {
             _hipBottomValue = hipSignal;
           }
-        } else {
-          _hipCoActive = false; // lost hip — skip check
         }
+        // If hipSignal is null or _hipCoActive is false: retain values as-is.
 
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
@@ -356,11 +355,11 @@ class PushUpAnalyzer {
     // travel roughly the same vertical distance as the shoulders.
     // In a lying cat / back-arch stretch only the spine moves: the shoulder
     // excursion is large but the hips barely shift.
-    // Reject the attempt if hips moved less than 40 % of shoulder travel AND
-    // the shoulder travel was large enough to be meaningful (≥ 1× downThreshold),
-    // but only when hip tracking stayed reliable throughout the rep.
-    if (_hipCoActive &&
-        _hipTopValue != null &&
+    // Reject the attempt if hips moved less than 20% of shoulder travel AND
+    // the shoulder travel was large enough to be meaningful (≥ 1× downThreshold).
+    // Applied whenever we have hip data — a brief tracking gap no longer skips
+    // this check entirely (previously _hipCoActive could go false on one bad frame).
+    if (_hipTopValue != null &&
         _hipBottomValue != null &&
         _topValue != null &&
         _bottomValue != null) {
