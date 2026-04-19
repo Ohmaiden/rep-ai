@@ -67,15 +67,6 @@ class PushUpAnalyzer {
   // Lowest point tracking during DOWN phase
   double? _bottomValue;
 
-  // Hip co-movement tracking — used to reject back-arch stretches.
-  // In a real push-up the hips travel in lock-step with the shoulders (rigid
-  // plank). In a lying cat/cow stretch only the spine moves, so the hip signal
-  // barely changes while the shoulder signal has a full excursion.
-  final _hipSmoother = SmoothedValue(alpha: 0.4);
-  double? _hipTopValue;    // best (highest) hip Y recorded during UP phase
-  double? _hipBottomValue; // deepest hip Y recorded during DOWN phase
-  bool _hipCoActive = false; // true when hip visibility stayed good this rep
-
   // Thresholds scale with torso length so sensitivity adapts to camera distance.
   // Floor of 0.025 / 0.018 prevents micro-movements (head nods, pose jitter)
   // from triggering state transitions when _torsoLength is small.
@@ -185,20 +176,6 @@ class PushUpAnalyzer {
 
     latestMetrics = PoseMetrics(poseDetected: true, side: 'FRONT');
 
-    // Hip co-movement signal (portrait only — always true since app is portrait-locked).
-    // Used in _finishRep to reject back-arch stretches that mimic push-up movement.
-    double? hipSignal;
-    {
-      final lH = landmarks['LEFT_HIP'];
-      final rH = landmarks['RIGHT_HIP'];
-      if (lH != null && rH != null) {
-        final hv = ((lH['visibility'] ?? 0.0) + (rH['visibility'] ?? 0.0)) / 2;
-        if (hv >= _minVis) {
-          hipSignal = _hipSmoother.update((lH['y']! + rH['y']!) / 2);
-        }
-      }
-    }
-
     // ── 2. Upside-down detection ────────────────────────────────────────────
     _updateUpsideDown(landmarks, deviceAngle);
 
@@ -254,23 +231,11 @@ class PushUpAnalyzer {
           if (signal < _topValue!) _topValue = signal;
         }
 
-        // Track hip "top" in parallel — take the minimum (highest) hip Y seen.
-        // A brief loss of hip visibility (one bad frame) no longer cancels the
-        // co-movement check — we keep the best value recorded so far.
-        if (hipSignal != null) {
-          _hipCoActive = true;
-          if (_hipTopValue == null || (_upFrameCount <= 8 && hipSignal < _hipTopValue!)) {
-            _hipTopValue = hipSignal;
-          }
-        }
-        // If hipSignal is null: retain _hipCoActive and _hipTopValue as-is.
-
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
         } else if (isExercise && _topValue != null && signal > _topValue! + _downThreshold) {
           phase = ExercisePhase.down;
           _bottomValue = signal;
-          _hipBottomValue = hipSignal; // seed the hip bottom tracker
         }
 
       case ExercisePhase.down:
@@ -280,15 +245,6 @@ class PushUpAnalyzer {
         } else if (signal > _bottomValue!) {
           _bottomValue = signal;
         }
-
-        // Track hip "bottom" in parallel.
-        // Brief visibility drops don't cancel the check — keep the best value.
-        if (hipSignal != null && _hipCoActive) {
-          if (_hipBottomValue == null || hipSignal > _hipBottomValue!) {
-            _hipBottomValue = hipSignal;
-          }
-        }
-        // If hipSignal is null or _hipCoActive is false: retain values as-is.
 
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
@@ -347,9 +303,6 @@ class PushUpAnalyzer {
     _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
     _issueVotes.clear();
-    _hipTopValue    = null;
-    _hipBottomValue = null;
-    _hipCoActive    = false;
   }
 
   void _finishRep(double currentSignal) {
@@ -365,41 +318,6 @@ class PushUpAnalyzer {
         _goIdle();
         return;
       }
-    }
-
-    // ── Stretch / cat-pose rejection ────────────────────────────────────────
-    // In a real push-up the whole body translates as a rigid plank, so the hips
-    // travel roughly the same vertical distance as the shoulders.
-    // In a lying cat / back-arch stretch only the spine moves: the shoulder
-    // excursion is large but the hips barely shift.
-    // Reject the attempt if hips moved less than 20% of shoulder travel AND
-    // the shoulder travel was large enough to be meaningful (≥ 1× downThreshold).
-    // Applied whenever we have hip data — a brief tracking gap no longer skips
-    // this check entirely (previously _hipCoActive could go false on one bad frame).
-    if (_hipTopValue != null &&
-        _hipBottomValue != null &&
-        _topValue != null &&
-        _bottomValue != null) {
-      final shoulderTravel = _bottomValue! - _topValue!;
-      final hipTravel = (_hipBottomValue! - _hipTopValue!).abs();
-      if (shoulderTravel >= _downThreshold && hipTravel < shoulderTravel * 0.20) {
-        // Hips stayed completely still — discard as a stretch, not a push-up.
-        // 0.20 (was 0.40) allows knee push-ups where hips pivot at the knees
-        // and travel less relative to the shoulders.
-        _goIdle();
-        return;
-      }
-    }
-
-    // ── Extreme elbow flare rejection ─────────────────────────────────────
-    // If the majority of frames had extreme elbow flare (>1.8× shoulder width,
-    // reported as 'Elbows dangerously flared'), reject the rep entirely —
-    // it's an injury risk pattern that shouldn't count even as a bad rep.
-    final extremeFlareVotes = _issueVotes['Elbows dangerously flared'] ?? 0;
-    final totalFormFrames = _goodFormFrames + _badFormFrames;
-    if (totalFormFrames > 0 && extremeFlareVotes > totalFormFrames * 0.40) {
-      _goIdle();
-      return;
     }
 
     // A rep is good unless bad frames are a clear majority of exercise frames.
@@ -443,9 +361,6 @@ class PushUpAnalyzer {
     _goodFormFrames = 0;
     _badFormFrames  = 0;
     _issueVotes.clear();
-    _hipTopValue    = null;
-    _hipBottomValue = null;
-    _hipCoActive    = false;
   }
 
   /// Returns (verticalSignal, sourceName, torsoLength) or null if pose is invalid.
@@ -544,9 +459,5 @@ class PushUpAnalyzer {
     _notExerciseFrames = 0;
     _idleExerciseStreak = 0;
     _issueVotes.clear();
-    _hipSmoother.reset();
-    _hipTopValue    = null;
-    _hipBottomValue = null;
-    _hipCoActive    = false;
   }
 }

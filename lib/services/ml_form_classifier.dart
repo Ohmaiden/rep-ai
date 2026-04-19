@@ -251,105 +251,50 @@ class MLFormClassifier {
       return const FormPrediction('not_exercise', 0.55, [0.1, 0.15, 0.75]);
     }
 
-    // ── 1b. Wrist-above-shoulder check (cat pose / stretch rejection) ──────
-    // In a push-up, wrists support body weight below or at shoulder level
-    // (wrist Y ≥ shoulder Y). In cat pose / chest-to-ground stretch, arms
-    // reach forward and wrists appear above shoulders in the frame (lower Y).
-    if (lW != null && rW != null) {
-      final wristVis = min(lW['visibility'] ?? 0.0, rW['visibility'] ?? 0.0);
-      if (wristVis > 0.2) {
-        final wristY = (lW['y']! + rW['y']!) / 2;
-        if (wristY < shoulderY - 0.06) {
-          return const FormPrediction('not_exercise', 0.7, [0.05, 0.1, 0.85]);
-        }
+    // ── 1b. Wrist visibility check ───────────────────────────────────────────
+    // Arms must be engaged (wrists visible) to count as a push-up.
+    // Hands behind back, bowing, or arms out of frame = wrists not visible = not exercise.
+    final lWvis = lW?['visibility'] ?? 0.0;
+    final rWvis = rW?['visibility'] ?? 0.0;
+    final bestWristVis = max(lWvis, rWvis);
+    if (bestWristVis < 0.2) {
+      return const FormPrediction('not_exercise', 0.7, [0.05, 0.1, 0.85]);
+    }
+
+    // Wrists above shoulders = cat pose / stretch, not a push-up.
+    if (lW != null && rW != null && min(lWvis, rWvis) > 0.2) {
+      final wristY = (lW['y']! + rW['y']!) / 2;
+      if (wristY < shoulderY - 0.06) {
+        return const FormPrediction('not_exercise', 0.7, [0.05, 0.1, 0.85]);
       }
     }
 
-    // ── 2. Form quality checks ───────────────────────────────────────────────
+    // ── 2. Form quality check: elbow flare only ──────────────────────────────
+    // Elbows flared = elbows at or past shoulder width when viewed from the front.
     final issues = <String>[];
 
-    // ── 2a. Hip sag detection ────────────────────────────────────────────────
-    // From the front: if hips are visible and significantly below shoulders,
-    // the person's core is sagging (hips dropping toward floor).
-    // Threshold is generous (0.20) because a floor-level camera in portrait
-    // creates a natural perspective gap even with a perfectly flat plank.
-    if (hipVis > 0.2 && lH != null && rH != null) {
-      final hipY = (lH['y']! + rH['y']!) / 2;
-      final hipBelowShoulders = hipY - shoulderY;
-      if (hipBelowShoulders > 0.20) {
-        issues.add('Hips too low');
-      }
-    }
-
-    // ── 2b. Head position check ──────────────────────────────────────────────
-    // Nose should be roughly at or slightly below shoulder level during push-up.
-    // At the bottom of the rep the nose naturally dips lower, so threshold is
-    // 0.20 to avoid penalising full-depth reps.
-    if (nose != null) {
-      final noseRelShoulder = nose['y']! - shoulderY;
-      if (noseRelShoulder > 0.20) {
-        issues.add('Head dropping');
-      }
-    }
-
-    // ── 2c. Elbow angle + flare check ────────────────────────────────────────
-    final leftArmVis  = min(lE?['visibility'] ?? 0.0, lW?['visibility'] ?? 0.0);
-    final rightArmVis = min(rE?['visibility'] ?? 0.0, rW?['visibility'] ?? 0.0);
-
-    double? elbowAngle;
-    if (leftArmVis > 0.2 && lE != null && lW != null) {
-      elbowAngle = _angle(lS, lE, lW);
-    } else if (rightArmVis > 0.2 && rE != null && rW != null) {
-      elbowAngle = _angle(rS, rE, rW);
-    }
-
-    if (elbowAngle != null) {
-      // Elbow outside push-up range = bad arm extension
-      if (elbowAngle <= 40) {
-        issues.add('Going too deep');
-      } else if (elbowAngle >= 170) {
-        issues.add('Not going low enough');
-      }
-
-      // From front view: check elbow flare. Elbows should stay relatively
-      // close to the body. If elbows are far outside the shoulder line (X),
-      // they're flared out (bad form / injury risk).
-      if (lE != null && rE != null) {
-        final lEvis = lE['visibility'] ?? 0.0;
-        final rEvis = rE['visibility'] ?? 0.0;
-        if (lEvis > 0.2 && rEvis > 0.2) {
-          final elbowSpread = (lE['x']! - rE['x']!).abs();
-          final shoulderWidth = (lS['x']! - rS['x']!).abs();
-          // Two-tier elbow flare detection:
-          //   ≥ 1.8× shoulder width → extreme flare, injury risk → reject rep
-          //   ≥ 1.5× shoulder width → moderate flare → bad form
-          // Wide-grip push-ups typically sit at ~1.3–1.5×.
-          if (shoulderWidth > 0.01) {
-            if (elbowSpread > shoulderWidth * 1.8) {
-              issues.add('Elbows dangerously flared');
-            } else if (elbowSpread > shoulderWidth * 1.5) {
-              issues.add('Arms too wide');
-            }
-          }
+    if (lE != null && rE != null) {
+      final lEvis = lE['visibility'] ?? 0.0;
+      final rEvis = rE['visibility'] ?? 0.0;
+      if (lEvis > 0.2 && rEvis > 0.2) {
+        final elbowSpread  = (lE['x']! - rE['x']!).abs();
+        final shoulderWidth = (lS['x']! - rS['x']!).abs();
+        if (shoulderWidth > 0.01 && elbowSpread >= shoulderWidth) {
+          issues.add('Elbows flared out');
         }
       }
-
-      return issues.isNotEmpty
-          ? FormPrediction('bad_form', 0.65, [0.65, 0.15, 0.2], issues: issues)
-          : const FormPrediction('good_form', 0.65, [0.1, 0.65, 0.25]);
     }
 
-    // No arm data — only accept as exercise if hips are also visible,
-    // which confirms the person is in a horizontal/push-up position.
-    // Head + shoulders only (no hips, no arms) is ambiguous and commonly
-    // triggers when just the face enters the frame — return not_exercise
-    // so the state machine stays idle until the full body is in view.
-    if (hipVis < 0.2) {
-      return const FormPrediction('not_exercise', 0.7, [0.05, 0.05, 0.9]);
+    // No arm data — only accept as exercise if hips are also visible.
+    if (lE == null && rE == null) {
+      if (hipVis < 0.2) {
+        return const FormPrediction('not_exercise', 0.7, [0.05, 0.05, 0.9]);
+      }
     }
+
     return issues.isNotEmpty
-        ? FormPrediction('bad_form', 0.5, [0.5, 0.15, 0.35], issues: issues)
-        : const FormPrediction('good_form', 0.5, [0.15, 0.5, 0.35]);
+        ? FormPrediction('bad_form', 0.65, [0.65, 0.15, 0.2], issues: issues)
+        : const FormPrediction('good_form', 0.65, [0.1, 0.65, 0.25]);
   }
 
   /// [SHELVED — portrait-only] Side-view classification for landscape mode.
@@ -424,112 +369,9 @@ class MLFormClassifier {
       return const FormPrediction('not_exercise', 0.65, [0.1, 0.1, 0.8]);
     }
 
-    // ── 2. Form quality checks ───────────────────────────────────────────────
-    final issues = <String>[];
-
-    // ── 2a. Hip sag detection ────────────────────────────────────────────────
-    // From the side: in a good push-up the body is a straight plank —
-    // shoulder, hip, and ankle should be roughly aligned along the gravity axis.
-    // If hips drop below the shoulder-ankle line, core is sagging.
-    final double shoulderGrav;
-    final double hipGrav;
-    if (isLandscape) {
-      shoulderGrav = shoulderX;
-      hipGrav = hipX;
-    } else {
-      shoulderGrav = shoulderY;
-      hipGrav = hipY;
-    }
-
-    // Check ankle if available for a proper plank-line check
-    final lA = landmarks['LEFT_ANKLE'];
-    final rA = landmarks['RIGHT_ANKLE'];
-    final lAvis = lA?['visibility'] ?? 0.0;
-    final rAvis = rA?['visibility'] ?? 0.0;
-
-    if (lAvis > 0.15 || rAvis > 0.15) {
-      // Use the more visible ankle
-      final ankle = (lAvis > rAvis) ? lA! : rA!;
-      final double ankleGrav = isLandscape ? ankle['x']! : ankle['y']!;
-      // Expected hip position = midpoint between shoulder and ankle on gravity axis.
-      // Threshold at 0.09 (was 0.06) — the tighter value caused false positives on
-      // users with slight natural lumbar curve and camera-angle perspective.
-      final expectedHipGrav = (shoulderGrav + ankleGrav) / 2;
-      final hipDeviation = hipGrav - expectedHipGrav;
-      if (hipDeviation > 0.09) {
-        issues.add('Hips too low');
-      }
-    } else {
-      // No ankle data — fall back to shoulder-hip gravity gap.
-      // 0.14 (was 0.10) to reduce false positives when the body is near-horizontal
-      // but camera perspective makes the hip appear slightly lower.
-      final hipSag = hipGrav - shoulderGrav;
-      if (hipSag > 0.14) {
-        issues.add('Hips too low');
-      }
-    }
-
-    // ── 2b. Head position check ──────────────────────────────────────────────
-    // From the side: nose should be roughly aligned with the shoulder on the
-    // gravity axis. Head drooping (nose below shoulder) or craning up (nose
-    // way above shoulder) = bad head position.
-    if (nose != null) {
-      final double noseGrav = isLandscape ? nose['x']! : nose['y']!;
-      final headDrop = noseGrav - shoulderGrav; // positive = below shoulder
-      final headCrane = shoulderGrav - noseGrav; // positive = above shoulder
-      if (headDrop > 0.08) {
-        issues.add('Head dropping');
-      } else if (headCrane > 0.12) {
-        issues.add('Head too high');
-      }
-    }
-
-    // ── 2c. Elbow angle check ────────────────────────────────────────────────
-    final leftArmVis  = min(lE?['visibility'] ?? 0.0, lW?['visibility'] ?? 0.0);
-    final rightArmVis = min(rE?['visibility'] ?? 0.0, rW?['visibility'] ?? 0.0);
-
-    double? elbowAngle;
-    if (leftArmVis > 0.2 && lE != null && lW != null) {
-      elbowAngle = _angle(lS, lE, lW);
-    } else if (rightArmVis > 0.2 && rE != null && rW != null) {
-      elbowAngle = _angle(rS, rE, rW);
-    }
-
-    if (elbowAngle != null) {
-      if (elbowAngle <= 40) {
-        issues.add('Going too deep');
-      } else if (elbowAngle >= 170) {
-        issues.add('Not going low enough');
-      }
-
-      return issues.isNotEmpty
-          ? FormPrediction('bad_form', 0.7, [0.7, 0.1, 0.2], issues: issues)
-          : const FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
-    }
-
-    // Body is horizontal but no arm data — if we detected other form issues,
-    // flag as bad; otherwise return not_exercise to prevent ghost reps.
-    if (issues.isNotEmpty) {
-      return FormPrediction('bad_form', 0.55, [0.55, 0.15, 0.3], issues: issues);
-    }
-    return const FormPrediction('not_exercise', 0.5, [0.15, 0.15, 0.7]);
+    // Side view — elbow flare can't be reliably detected from this angle.
+    // Body is horizontal = good form. No specific issue checks.
+    return const FormPrediction('good_form', 0.7, [0.1, 0.7, 0.2]);
   }
 
-  /// Calculate angle at point B given three landmarks A, B, C (in degrees).
-  double _angle(
-    Map<String, double> a,
-    Map<String, double> b,
-    Map<String, double> c,
-  ) {
-    final ax = a['x']! - b['x']!;
-    final ay = a['y']! - b['y']!;
-    final cx = c['x']! - b['x']!;
-    final cy = c['y']! - b['y']!;
-    final dot = ax * cx + ay * cy;
-    final magA = sqrt(ax * ax + ay * ay);
-    final magC = sqrt(cx * cx + cy * cy);
-    if (magA == 0 || magC == 0) return 0;
-    final cosAngle = (dot / (magA * magC)).clamp(-1.0, 1.0);
-    return acos(cosAngle) * 180 / pi;
-  }
 }

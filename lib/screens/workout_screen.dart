@@ -124,11 +124,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
 
     _audio = context.read<WorkoutAudioService>();
-    _audio.init().then((_) {
-      if (mounted) {
-        context.read<WorkoutState>().setAudioService(_audio);
-      }
-    });
+    // Set audio service immediately so rep sounds aren't missed during init.
+    context.read<WorkoutState>().setAudioService(_audio);
+    _audio.init();
     _initializeCamera();
     _startPoseHintTimer();
   }

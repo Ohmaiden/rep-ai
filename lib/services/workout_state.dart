@@ -4,7 +4,6 @@
 /// Supports both free mode and custom sets mode.
 library;
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/workout_models.dart';
 import 'pushup_analyzer.dart';
@@ -192,13 +191,8 @@ class WorkoutState extends ChangeNotifier {
     final noseY = landmarks['NOSE']?['y'] ?? -1.0;
     final hipY = ((landmarks['LEFT_HIP']?['y'] ?? 0.0) + (landmarks['RIGHT_HIP']?['y'] ?? 0.0)) / 2;
 
-    // On iOS the TFLite model never loads (mlReady is always false).
-    // Use the geometric classifier directly instead.
-    if (Platform.isIOS) {
-      _currentForm = _ml.classifyGeometric(landmarks, deviceAngle: _deviceAngle);
-    } else if (_ml.isReady) {
-      _currentForm = _ml.classify(landmarks);
-    }
+    // Use geometric classifier on all platforms — only elbow flare matters now.
+    _currentForm = _ml.classifyGeometric(landmarks, deviceAngle: _deviceAngle);
 
     // Resolve specific form issues for this frame.
     // iOS geometric classifier already embeds issues in FormPrediction.
