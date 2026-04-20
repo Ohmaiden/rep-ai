@@ -18,6 +18,35 @@ class _ChangeEntry {
 
 const _changelog = <_ChangeEntry>[
   _ChangeEntry(
+    version: '2.4.0',
+    groups: [
+      (
+        'Accounts & Cloud Sync',
+        [
+          'Sign in with Google, Apple or email to back up your data',
+          'Workouts, streaks, goals and badges sync automatically after every session',
+          'Everything works offline — account is completely optional',
+        ],
+      ),
+      (
+        'Audio Fix',
+        [
+          'Rep sounds no longer pause or interrupt your music',
+          'Works with Spotify, Apple Music and anything else playing in the background',
+        ],
+      ),
+      (
+        'Bug Fixes',
+        [
+          'Push-up tracking no longer stops mid-set from a single off frame',
+          'Cat poses, head nods and body shifts no longer count as reps',
+          'Knee push-ups now count reliably',
+          'Wide-grip push-ups no longer flagged as bad form',
+        ],
+      ),
+    ],
+  ),
+  _ChangeEntry(
     version: '2.3.0',
     groups: [
       (
