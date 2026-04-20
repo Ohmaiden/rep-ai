@@ -5,6 +5,13 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-20 (What's New 2.4.0 entry — build 133)
+
+### Changed
+- What's New screen: added 2.4.0 entry covering Accounts & Cloud Sync, Audio Fix, and Bug Fixes — shown to users upgrading from below 2.4.0
+
+---
+
 ## [2.6.0] — 2026-04-20 (Delete account + auto cloud sync — build 129)
 
 ### Added
