@@ -13,6 +13,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../services/auth_service.dart';
 import '../services/cloud_sync_service.dart';
+import '../services/database_service.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -204,6 +205,92 @@ class _AccountScreenState extends State<AccountScreen> {
       }
     } finally {
       if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    // First confirmation
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+          'Are you sure you want to delete your account? '
+          'You can sign up again at any time using the same email address.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Account',
+                style: TextStyle(color: Color(0xFFDC2626))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // Second dialog: keep or delete local data
+    final deleteLocal = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Local Workout History',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+          'What would you like to do with your workout history on this device?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Local Data'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Everything',
+                style: TextStyle(color: Color(0xFFDC2626))),
+          ),
+        ],
+      ),
+    );
+    if (deleteLocal == null || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      final auth = context.read<AuthService>();
+      final sync = context.read<CloudSyncService>();
+      final db = context.read<DatabaseService>();
+
+      // Delete cloud data first (needs auth token)
+      await sync.deleteAllUserData();
+
+      // Delete Firebase Auth account
+      await auth.deleteAccount();
+
+      // Optionally wipe local data
+      if (deleteLocal) {
+        await db.deleteAllLocalData();
+      }
+
+      if (mounted) {
+        // Navigate back to root (auth screen)
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Something went wrong. Please try again or contact support.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -447,6 +534,19 @@ class _AccountScreenState extends State<AccountScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           onTap: _handleSignOut,
+        ),
+
+        // Delete account
+        ListTile(
+          leading: const Icon(Icons.delete_forever_rounded,
+              color: Color(0xFFDC2626)),
+          title: const Text('Delete Account',
+              style: TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontWeight: FontWeight.w600)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onTap: _handleDeleteAccount,
         ),
       ],
     );

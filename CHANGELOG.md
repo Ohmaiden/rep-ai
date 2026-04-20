@@ -5,6 +5,85 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-04-20 (Delete account + auto cloud sync — build 129)
+
+### Added
+- **Delete Account:** New red "Delete Account" button on the Account screen below Sign Out. Two-step confirmation: first confirms intent, second asks whether to keep or delete local workout history. Deletes all Firestore data for the user, deletes the Firebase Auth account, optionally wipes all local SQLite data, then navigates back to the root screen. Shows error snackbar on failure
+- **Auto cloud sync after every workout:** A full data push (all workouts, streak, goals, badges) runs automatically after each workout is saved to local SQLite. Ensures the cloud always has a complete backup. Runs fire-and-forget — fails silently on network issues and does not block the summary screen
+- **Full sync on app launch:** If the user is already signed in when the app starts, a full pull-and-merge sync runs automatically (previously only triggered on sign-in)
+
+### Technical
+- `AuthService.deleteAccount()` — calls `user.delete()` + Google sign-out cleanup
+- `CloudSyncService.deleteAllUserData()` — deletes all Firestore subcollections (workouts, data, badges) and the user document
+- Auto-sync calls `CloudSyncService.pushAll()` after every workout — full backup each time
+- `DatabaseService.deleteAllLocalData()` — clears workout_sessions, streak_data, goals, badges, goal_history tables
+
+---
+
+## [2.6.0] — 2026-04-20 (Knee push-ups + cobra rejection — build 125/126)
+
+### Fixed
+- **Knee push-ups count inconsistently:** Shorter vertical travel in knee push-up position sometimes failed to clear the down threshold. Now detects knee push-up position via hip→knee→ankle angle (< 140°) and applies a 55% reduced down threshold so reps count reliably. Knee push-ups are counted as good reps by default
+- **Cobra pose / hip-hump counted as reps:** When hips thrust toward the ground while arms barely bend (back extension, not a push-up), the motion was counted as a rep. Now silently rejected when hip Y drops significantly during the down phase AND elbow bend is < 15°
+
+---
+
+## [2.6.0] — 2026-04-20 (Elbow AND gate — build 123/124)
+
+### Fixed
+- **False reps from head nods, body shifts, and all-fours movement:** Rep counter only checked vertical signal (head/shoulder Y drop + rise), so any downward motion triggered a count. Added an AND gate: a rep now requires BOTH vertical movement AND ≥25° average elbow angle decrease during the down phase. If neither arm is visible, the rep is rejected
+- **Elbow angle now averages both arms:** Previously used only the first visible arm. Now averages left and right when both are visible; falls back to single visible arm on iOS when one wrist is occluded
+
+---
+
+## [2.6.0] — 2026-04-20 (Form detection: elbow flare ratio, hip sag, shallow reps — build 120/122)
+
+### Changed
+- **Elbow flare detection reworked:** Now compares elbow-vs-wrist spread ratio instead of absolute shoulder width — wide-grip push-ups no longer falsely flagged as bad form
+- **Hip sag tracking during DOWN phase:** Tracks hip Y change to detect humping (hips dropping significantly relative to shoulder travel). Knee push-ups (stable hips) pass; humping motions flagged as bad form
+- **Shallow rep filter:** Reps where minimum elbow angle stays above 150° (arms barely bending) are silently rejected — not counted and not flagged as bad
+
+---
+
+## [2.6.0] — 2026-04-19 (iOS SFX mute switch fix — build 118/119)
+
+### Fixed
+- **SFX silent when iOS mute switch is on:** Audio session switched from `ambient` to `playback + mixWithOthers` so rep sounds play regardless of hardware mute switch position
+- **Repeated audio init corrupting state:** Added `_initialized` guard so `setAudioContext` is only called once per app session
+
+---
+
+## [2.6.0] — 2026-04-19 (Simplified form detection + SFX race — build 116/117)
+
+### Changed
+- **Form detection simplified:** Bad reps now only flagged for elbow flare (elbows ≥ shoulder width). Removed: cat pose rejection, hip co-movement tracking, going too deep, not going low enough, hips too low, head dropping, arms too wide
+- **Wrist visibility required:** Classifier now requires visible wrist landmarks to classify as exercise — fixes bowing or hands-behind-back being counted as reps
+- **TFLite model no longer used for classification:** Both platforms now use geometric classifier only
+
+### Fixed
+- **SFX race condition:** Audio service reference set before `init()` so rep sounds aren't dropped on first reps of a session
+
+---
+
+## [2.6.0] — 2026-04-19 (iOS dark mode storyboard + false-positive rep fixes — build 114/115)
+
+### Fixed
+- **iOS dark mode launch screen not activating:** Added `useTraitCollections=YES` to LaunchScreen.storyboard so the dark color variation actually takes effect
+- **Cat pose counted as reps:** Added wrist-above-shoulder check in classifier that returns `not_exercise`; idle activation raised from 4→6 consecutive exercise frames to reduce false starts
+- **Head nods counted as reps:** Added minimum absolute thresholds on down/up state transitions (0.025/0.018) plus minimum 3.5% shoulder travel in `_finishRep` to reject micro-movements
+- **Elbow flare thresholds reworked:** Two-tier detection — 1.5× shoulder width = bad form, 1.8× = rep rejected entirely
+
+---
+
+## [2.6.0] — 2026-04-19 (Force dark iOS launch + greeting fix — build 111/113)
+
+### Fixed
+- **Screen non-interactive after launch:** `_SplashBridge` color overlay `FadeTransition` continued absorbing touches at opacity 0 (hit-testing not disabled). Wrapped in `IgnorePointer` so the invisible layer no longer freezes the UI
+- **iOS launch screen forced dark:** Launch screen now always uses dark background (`#1A1A2E`) regardless of system or app theme preference, preventing white flash on load
+- **Greeting not capitalized:** Home screen greeting changed to "Good Morning / Good Afternoon / Good Evening"
+
+---
+
 ## [2.6.0] — 2026-04-19 (Head-only detection + splash dark mode — build 109/110)
 
 ### Fixed

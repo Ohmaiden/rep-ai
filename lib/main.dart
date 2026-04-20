@@ -47,6 +47,11 @@ void main() async {
   final syncService = CloudSyncService(authService: authService, db: dbService);
   authService.setOnSignIn(() => syncService.pullAndMerge());
 
+  // Sync on app launch if already logged in
+  if (authService.isSignedIn) {
+    syncService.pullAndMerge();
+  }
+
   // Audio service — shared provider so workout hub, workout screen, and summary
   // screen all see the same mute state.
   final audioService = WorkoutAudioService();

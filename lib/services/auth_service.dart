@@ -148,6 +148,17 @@ class AuthService extends ChangeNotifier {
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
   }
 
+  // ── Delete Account ─────────────────────────────────────────────────────────
+
+  Future<void> deleteAccount() async {
+    final user = _currentUser;
+    if (user == null) throw Exception('No user signed in.');
+    await user.delete();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+  }
+
   // ── Sign Out ──────────────────────────────────────────────────────────────
 
   Future<void> signOut() async {

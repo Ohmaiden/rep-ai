@@ -495,6 +495,19 @@ class DatabaseService {
     return maps.map((m) => WorkoutSession.fromMap(m)).toList();
   }
 
+  /// Delete all local workout history, streak, goals, badges, and goal history.
+  Future<void> deleteAllLocalData() async {
+    if (_database == null) return;
+    await _database!.delete('workout_sessions');
+    await _database!.update('streak_data', {
+      'current_streak': 0,
+      'last_workout_date': '',
+    }, where: 'id = 1');
+    await _database!.delete('goals');
+    await _database!.delete('badges');
+    await _database!.delete('goal_history');
+  }
+
   Future<void> close() async {
     await _database?.close();
   }

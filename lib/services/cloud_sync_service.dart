@@ -101,6 +101,49 @@ class CloudSyncService {
     await batch.commit();
   }
 
+  // ── Single Workout Sync ────────────────────────────────────────────────────
+
+  /// Push a single workout to Firestore. Fails silently on error.
+  Future<void> syncSingleWorkout(WorkoutSession session) async {
+    if (!canSync) return;
+    try {
+      await _workoutsRef.doc(session.id).set(
+        _sessionToMap(session),
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      debugPrint('CloudSync syncSingleWorkout error: $e');
+    }
+  }
+
+  // ── Delete All User Data ──────────────────────────────────────────────────
+
+  /// Delete all Firestore data for the current user.
+  Future<void> deleteAllUserData() async {
+    if (!canSync) return;
+
+    // Delete workouts subcollection
+    final workouts = await _workoutsRef.get();
+    for (final doc in workouts.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete data subcollection (meta, goals)
+    final dataDocs = await _userRef.collection('data').get();
+    for (final doc in dataDocs.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete badges subcollection
+    final badgeDocs = await _userRef.collection('badges').get();
+    for (final doc in badgeDocs.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete the user document itself
+    await _userRef.delete();
+  }
+
   // ── Pull and Merge ────────────────────────────────────────────────────────
 
   Future<void> pullAndMerge() async {

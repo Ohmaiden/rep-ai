@@ -19,6 +19,7 @@ import '../services/pose_service.dart';
 import '../services/workout_state.dart';
 import '../services/database_service.dart';
 import '../services/audio_service.dart';
+import '../services/cloud_sync_service.dart';
 import 'rest_timer_screen.dart';
 import 'workout_summary_screen.dart';
 
@@ -361,6 +362,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
       await db.saveSession(session);
       await db.updateStreak();
+
+      // Auto-sync all data to cloud (fire-and-forget, fail silently)
+      context.read<CloudSyncService>().pushAll();
+
       if (!mounted) return;
 
       final isNewRepRecord = session.goodFormReps > oldMostReps;
