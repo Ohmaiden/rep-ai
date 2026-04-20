@@ -26,6 +26,18 @@
 /// This prevents false reps from head nods, body shifts, or going on all fours
 /// without actual arm bending.
 ///
+/// Knee push-up support
+/// --------------------
+/// When hip→knee→ankle angle < 140° (knees bent on floor), a reduced down
+/// threshold (55% of normal) is used so the shorter vertical travel still
+/// triggers reps reliably. Knee push-ups are counted as good reps by default.
+///
+/// Cobra / hip-hump rejection
+/// --------------------------
+/// If hips drop significantly during the down phase AND elbows didn't bend
+/// meaningfully (< 15°), the motion is a back extension, not a push-up.
+/// Rejected silently — not counted at all.
+///
 /// Upside-down detection
 /// ---------------------
 /// ML Kit returns normalised Y coords (0 = top of frame, 1 = bottom).
@@ -82,6 +94,9 @@ class PushUpAnalyzer {
   // Elbow angle tracking during DOWN phase (Change 3: reject shallow reps)
   double? _elbowAngleAtDownStart;   // elbow angle when DOWN phase begins
   double? _minElbowAngleDuringDown; // tracks how deep elbows bent during rep
+
+  // Knee push-up detection: reduced down threshold when knees are bent
+  bool _kneePushUpDetected = false;
 
   // Thresholds scale with torso length so sensitivity adapts to camera distance.
   // Floor of 0.025 / 0.018 prevents micro-movements (head nods, pose jitter)
@@ -247,9 +262,24 @@ class PushUpAnalyzer {
           if (signal < _topValue!) _topValue = signal;
         }
 
+        // ── Knee push-up detection ───────────────────────────────────────
+        // Knee push-ups have shorter vertical travel because legs are bent.
+        // Detect via hip→knee→ankle angle: straight legs ≈ 170-180°,
+        // knee push-ups ≈ 60-140°. Apply reduced down threshold so reps
+        // count reliably.
+        final kneeAngle = _computeKneeAngle(landmarks);
+        if (kneeAngle != null) {
+          _kneePushUpDetected = kneeAngle < 140.0;
+        }
+
+        // Use 55% of normal threshold for knee push-ups
+        final effectiveDownThreshold = _kneePushUpDetected
+            ? _downThreshold * 0.55
+            : _downThreshold;
+
         if (_notExerciseFrames >= _maxNotExerciseFrames || _nullFormFrames >= _maxNullFormFrames) {
           _goIdle();
-        } else if (isExercise && _topValue != null && signal > _topValue! + _downThreshold) {
+        } else if (isExercise && _topValue != null && signal > _topValue! + effectiveDownThreshold) {
           // Seed hip Y at the start of the DOWN phase
           final lH = landmarks['LEFT_HIP'];
           final rH = landmarks['RIGHT_HIP'];
@@ -353,6 +383,7 @@ class PushUpAnalyzer {
     _hipYAtDownBottom = null;
     _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
+    _kneePushUpDetected = false;
     _issueVotes.clear();
   }
 
@@ -394,6 +425,18 @@ class PushUpAnalyzer {
       return;
     }
 
+    // ── Cobra / hip-hump rejection gate ────────────────────────────────────
+    // Cobra pose: hips thrust toward floor while arms barely bend (back
+    // extension, not a push-up). If hips dropped significantly AND elbows
+    // didn't bend meaningfully (< 15°), reject silently — don't count at all.
+    if (_hipYAtDownStart != null && _hipYAtDownBottom != null) {
+      final hipDrop = _hipYAtDownBottom! - _hipYAtDownStart!;
+      if (hipDrop > 0.03 && elbowBend < 15.0) {
+        _goIdle();
+        return;
+      }
+    }
+
     // A rep is good unless bad frames are a clear majority of exercise frames.
     // Bad must exceed 60% of frames to fail the rep — isolated false-positive
     // frames (e.g. a couple of hip-sag detections mid-rep) no longer flip an
@@ -406,6 +449,8 @@ class PushUpAnalyzer {
         _badFormFrames < totalExercise * badThreshold;
 
     // ── Humping detection: hips dropping significantly during DOWN phase ───
+    // Elbows DID bend (passed the AND gate and cobra gate above), but hips
+    // still dropped disproportionately — mark as bad form, not silent reject.
     bool humpingDetected = false;
     if (_hipYAtDownStart != null && _hipYAtDownBottom != null &&
         _topValue != null && _bottomValue != null) {
@@ -454,6 +499,7 @@ class PushUpAnalyzer {
     _hipYAtDownBottom = null;
     _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
+    _kneePushUpDetected = false;
     _issueVotes.clear();
   }
 
@@ -556,6 +602,7 @@ class PushUpAnalyzer {
     _hipYAtDownBottom = null;
     _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
+    _kneePushUpDetected = false;
     _issueVotes.clear();
   }
 
@@ -584,6 +631,35 @@ class PushUpAnalyzer {
     if (rS != null && rE != null && rW != null) {
       final vis = min(rE['visibility'] ?? 0.0, rW['visibility'] ?? 0.0);
       if (vis >= _minVis) rightAngle = _angleDeg(rS, rE, rW);
+    }
+
+    if (leftAngle != null && rightAngle != null) {
+      return (leftAngle + rightAngle) / 2;
+    }
+    return leftAngle ?? rightAngle;
+  }
+
+  /// Computes the average knee angle (hip→knee→ankle) from visible legs.
+  /// Straight legs ≈ 170-180°, knee push-up position ≈ 60-140°.
+  /// Returns null if neither leg's knee+ankle is visible enough.
+  double? _computeKneeAngle(Map<String, Map<String, double>> landmarks) {
+    final lH = landmarks['LEFT_HIP'];
+    final lK = landmarks['LEFT_KNEE'];
+    final lA = landmarks['LEFT_ANKLE'];
+    final rH = landmarks['RIGHT_HIP'];
+    final rK = landmarks['RIGHT_KNEE'];
+    final rA = landmarks['RIGHT_ANKLE'];
+
+    double? leftAngle;
+    double? rightAngle;
+
+    if (lH != null && lK != null && lA != null) {
+      final vis = min(lK['visibility'] ?? 0.0, lA['visibility'] ?? 0.0);
+      if (vis >= _minVis) leftAngle = _angleDeg(lH, lK, lA);
+    }
+    if (rH != null && rK != null && rA != null) {
+      final vis = min(rK['visibility'] ?? 0.0, rA['visibility'] ?? 0.0);
+      if (vis >= _minVis) rightAngle = _angleDeg(rH, rK, rA);
     }
 
     if (leftAngle != null && rightAngle != null) {
