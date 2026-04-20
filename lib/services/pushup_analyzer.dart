@@ -18,6 +18,14 @@
 /// State machine:
 ///   IDLE → UP (in push-up position) → DOWN (shoulders drop) → UP (rep counted)
 ///
+/// Elbow angle AND gate
+/// --------------------
+/// A rep only completes when BOTH conditions are met:
+///   1. Vertical signal (shoulder/head Y) drops past down threshold then rises
+///   2. Average elbow angle decreased by ≥25° during the down phase
+/// This prevents false reps from head nods, body shifts, or going on all fours
+/// without actual arm bending.
+///
 /// Upside-down detection
 /// ---------------------
 /// ML Kit returns normalised Y coords (0 = top of frame, 1 = bottom).
@@ -72,6 +80,7 @@ class PushUpAnalyzer {
   double? _hipYAtDownBottom; // max hip Y seen during DOWN phase
 
   // Elbow angle tracking during DOWN phase (Change 3: reject shallow reps)
+  double? _elbowAngleAtDownStart;   // elbow angle when DOWN phase begins
   double? _minElbowAngleDuringDown; // tracks how deep elbows bent during rep
 
   // Thresholds scale with torso length so sensitivity adapts to camera distance.
@@ -250,6 +259,8 @@ class PushUpAnalyzer {
               _hipYAtDownStart = (lH['y']! + rH['y']!) / 2;
             }
           }
+          // Seed elbow angle at the start of the DOWN phase
+          _elbowAngleAtDownStart = _computeElbowAngle(landmarks);
           phase = ExercisePhase.down;
           _bottomValue = signal;
           _hipYAtDownBottom = _hipYAtDownStart; // seed
@@ -340,6 +351,7 @@ class PushUpAnalyzer {
     _idleExerciseStreak = 0;
     _hipYAtDownStart = null;
     _hipYAtDownBottom = null;
+    _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
     _issueVotes.clear();
   }
@@ -361,6 +373,23 @@ class PushUpAnalyzer {
 
     // ── Reject shallow reps silently (don't count, don't record as bad) ───
     if (_minElbowAngleDuringDown != null && _minElbowAngleDuringDown! > 150.0) {
+      _goIdle();
+      return;
+    }
+
+    // ── Elbow angle AND gate ────────────────────────────────────────────────
+    // A rep only counts when the vertical signal (head/shoulder drop + rise)
+    // AND real arm bending both occur. This prevents false reps from head
+    // nods, body shifts, or going on all fours without actual push-up motion.
+    // Require average elbow angle to decrease by at least 25° during the
+    // down phase compared to the angle at the start of the rep cycle.
+    // If neither arm was visible at any point, reject the rep.
+    if (_elbowAngleAtDownStart == null || _minElbowAngleDuringDown == null) {
+      _goIdle();
+      return;
+    }
+    final elbowBend = _elbowAngleAtDownStart! - _minElbowAngleDuringDown!;
+    if (elbowBend < 25.0) {
       _goIdle();
       return;
     }
@@ -423,6 +452,7 @@ class PushUpAnalyzer {
     _badFormFrames  = 0;
     _hipYAtDownStart = null;
     _hipYAtDownBottom = null;
+    _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
     _issueVotes.clear();
   }
@@ -524,14 +554,16 @@ class PushUpAnalyzer {
     _idleExerciseStreak = 0;
     _hipYAtDownStart = null;
     _hipYAtDownBottom = null;
+    _elbowAngleAtDownStart = null;
     _minElbowAngleDuringDown = null;
     _issueVotes.clear();
   }
 
   // ── Elbow angle helpers ──────────────────────────────────────────────────
 
-  /// Computes the elbow angle (shoulder-elbow-wrist) from visible landmarks.
-  /// Returns the angle in degrees, or null if no arm is visible enough.
+  /// Computes the average elbow angle (shoulder→elbow→wrist) from visible arms.
+  /// Averages left and right when both visible; uses whichever is visible if
+  /// only one arm is detected. Returns null if neither arm is visible enough.
   double? _computeElbowAngle(Map<String, Map<String, double>> landmarks) {
     final lS = landmarks['LEFT_SHOULDER'];
     final lE = landmarks['LEFT_ELBOW'];
@@ -540,14 +572,24 @@ class PushUpAnalyzer {
     final rE = landmarks['RIGHT_ELBOW'];
     final rW = landmarks['RIGHT_WRIST'];
 
-    // Try left arm first, then right
-    for (final (s, e, w) in [(lS, lE, lW), (rS, rE, rW)]) {
-      if (s == null || e == null || w == null) continue;
-      final vis = min(e['visibility'] ?? 0.0, w['visibility'] ?? 0.0);
-      if (vis < _minVis) continue;
-      return _angleDeg(s, e, w);
+    double? leftAngle;
+    double? rightAngle;
+
+    // Left arm
+    if (lS != null && lE != null && lW != null) {
+      final vis = min(lE['visibility'] ?? 0.0, lW['visibility'] ?? 0.0);
+      if (vis >= _minVis) leftAngle = _angleDeg(lS, lE, lW);
     }
-    return null;
+    // Right arm
+    if (rS != null && rE != null && rW != null) {
+      final vis = min(rE['visibility'] ?? 0.0, rW['visibility'] ?? 0.0);
+      if (vis >= _minVis) rightAngle = _angleDeg(rS, rE, rW);
+    }
+
+    if (leftAngle != null && rightAngle != null) {
+      return (leftAngle + rightAngle) / 2;
+    }
+    return leftAngle ?? rightAngle;
   }
 
   double _angleDeg(Map<String, double> a, Map<String, double> b, Map<String, double> c) {
