@@ -5,6 +5,13 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-07-22 (Privacy policy — build 135)
+
+### Fixed
+- **Google Play privacy policy rejection:** Added explicit Data Retention section to `privacy_policy.html` covering every data type individually (email, cloud backup, camera, AI processing, local data, analytics, ad identifiers). Clarified no-account users retain zero server-side data. Addressed Firebase third-party retention separately. Google's rejection reason: "Data retention policy not specified."
+
+---
+
 ## [2.6.0] — 2026-04-20 (What's New 2.4.0 entry — build 133)
 
 ### Changed
