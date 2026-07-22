@@ -6,10 +6,10 @@ Rep AI is an AI-powered fitness app built with Flutter that uses your phone came
 ## Who Built It
 Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code as primary dev environment, with GPT as a strategic advisor.
 
-## Current Status (April 2026)
+## Current Status (July 2026)
 - **iOS:** Live on the Apple App Store at £0.99 (one-time payment). Actively being promoted.
-- **Android:** Closed testing on Google Play with 12+ testers. Awaiting 14-day testing period before production launch.
-- **Focus:** Tweaking and polishing the app for promotion. Subscription model planned when more exercises are added.
+- **Android:** Live on Google Play. Production launch complete.
+- **Focus:** Polishing, promoting, and resolving store policy issues. Subscription model planned when more exercises are added.
 
 ---
 
@@ -110,8 +110,10 @@ Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code a
 
 ### Privacy
 - All AI processing on-device — no video recorded, no data uploaded
-- No accounts, no login, no analytics, no ads
-- Privacy policy hosted on GitHub Pages
+- Optional account feature (added v2.5.0): email + Firebase Auth/Firestore for cloud backup of workout history. Entirely optional — app works fully without an account
+- No analytics, no ads, no tracking
+- Camera feed processed in real time and immediately discarded — never recorded or uploaded
+- Privacy policy hosted on GitHub Pages (updated July 2026 to include explicit data retention section after Google Play rejection)
 
 ---
 
