@@ -5,6 +5,13 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.0] — 2026-07-23 (Project summary update — build 137)
+
+### Changed
+- `REP_AI_FULL_PROJECT_SUMMARY.md` updated: status changed to July 2026, Android marked as live on Google Play, Privacy section corrected to reflect optional Firebase accounts added in v2.5.0
+
+---
+
 ## [2.6.0] — 2026-07-22 (Privacy policy — build 135)
 
 ### Fixed
