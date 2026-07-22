@@ -7,9 +7,9 @@ Rep AI is an AI-powered fitness app built with Flutter that uses your phone came
 Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code as primary dev environment, with GPT as a strategic advisor.
 
 ## Current Status (July 2026)
-- **iOS:** Live on the Apple App Store at £0.99 (one-time payment). Actively being promoted.
-- **Android:** Live on Google Play. Production launch complete.
-- **Focus:** Polishing, promoting, and resolving store policy issues. Subscription model planned when more exercises are added.
+- **iOS:** Live on the Apple App Store. Currently free — only push-ups supported, pricing will be introduced once more exercises are added.
+- **Android:** Live on Google Play. Currently free — same reasoning as iOS.
+- **Focus:** Polishing, promoting, and resolving store policy issues. Paid/subscription model planned when feature set justifies it.
 
 ---
 
@@ -143,7 +143,7 @@ Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code a
 - **Short description:** AI rep counter that only counts clean reps. Fix your form and progress.
 - **Category:** Health & Fitness
 - **Tags:** Workout, Activity tracker, Health & fitness, Sports coaching, Self-help
-- **Price:** £2.99 (set for production, free during closed testing)
+- **Price:** Free (temporarily free at launch — only push-ups supported; paid model planned when more exercises added)
 - **Contact email:** info.ohmslabs@gmail.com
 - **Business name:** Ohms Labs
 - **Privacy policy:** https://github.com/OhmsLabs/rep-ai-privacy
@@ -153,7 +153,7 @@ Omar (Ohms Labs), solo indie developer. Built the entire app using Claude Code a
 - **App name:** Rep AI
 - **Bundle ID:** com.ohmslabs.repai
 - **Description:** Rep AI is an AI-powered push-up counter that only counts reps with good form. Using your phone's camera and on-device AI, Rep AI tracks your movement in real time. Features: automatic rep counting with form detection, good vs bad form tracking, workout history with weekly/monthly stats, daily/weekly rep goals, streak tracking, portrait and landscape support. All processing happens on device. No video recorded. No data uploaded.
-- **Price:** £0.99 (one-time payment)
+- **Price:** Free (temporarily free at launch — paid model planned when more exercises added)
 - **Status:** Live on the App Store
 - **iPhone and iPad** — portrait-only on both; `UIRequiresFullScreen=true` opts out of iPad multitasking (required for portrait-only iPad apps); `TARGETED_DEVICE_FAMILY=1,2` targets both
 - **Built via Codemagic** (cloud Mac builds)
