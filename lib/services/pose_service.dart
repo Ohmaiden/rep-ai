@@ -215,11 +215,27 @@ class PoseDetectionService {
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
     if (format == null) return null;
 
-    // Pass sensorOrientation to ML Kit on all platforms so it can correctly
-    // process the image. On iOS, the sensor delivers landscape frames
-    // (sensorOrientation=90) even in portrait — ML Kit needs to know this
-    // to detect the pose correctly.
-    final rotation = InputImageRotationValue.fromRawValue(sensorOrientation)
+    // Compute the rotation to pass to ML Kit.
+    //
+    // iOS: sensorOrientation is always 90 (landscape sensor) regardless of
+    // device orientation. Pass it directly — ML Kit handles iOS internally.
+    //
+    // Android front camera: the sensor is physically mirrored, so the correct
+    // rotation to make the frame upright is (360 - sensorOrientation) % 360.
+    // e.g. sensorOrientation=270 → pass 90°; sensorOrientation=90 → pass 270°.
+    // Passing sensorOrientation directly (as before) produces a 180°-flipped
+    // result, which triggered the upside-down overlay and broke pose detection.
+    //
+    // Android back camera: pass sensorOrientation directly (no mirror).
+    int rotationDegrees;
+    if (Platform.isIOS) {
+      rotationDegrees = sensorOrientation;
+    } else if (camera.lensDirection == CameraLensDirection.front) {
+      rotationDegrees = (360 - sensorOrientation) % 360;
+    } else {
+      rotationDegrees = sensorOrientation;
+    }
+    final rotation = InputImageRotationValue.fromRawValue(rotationDegrees)
         ?? InputImageRotation.rotation0deg;
 
     // On iOS with bgra8888, all data is in a single plane.
