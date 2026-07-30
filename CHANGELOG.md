@@ -5,6 +5,20 @@ Keep this file updated with every future change. Add new entries at the top.
 
 ---
 
+## [2.6.1] — 2026-07-30 (Android pose detection fix + icon update — build 145)
+
+### Fixed
+- **Android body not detected / rotate overlay stuck:** ML Kit was receiving the wrong rotation for the front camera on Android. Front cameras are physically mirrored so the correct rotation is `(360 - sensorOrientation) % 360` not `sensorOrientation` directly. Passing 270° instead of 90° (for the typical front camera sensorOrientation=270) caused landmark coordinates to be 180° flipped — nose appeared below hips in every frame, triggering the upside-down overlay full-screen and blocking the workout. iOS unchanged.
+
+### Changed
+- **Android app icon:** Updated to match iOS icon for visual cohesion across platforms. Generated all mipmap sizes (mdpi → xxxhdpi) from the 1024×1024 iOS source. Added `ic_launcher_round` variants and adaptive icon foreground. Background colour `#2563EB` retained.
+
+### iOS (store submission only)
+- Bumped marketing version to `2.6.1` (Apple requires higher than previously approved `2.6.0`)
+- Added `ITSAppUsesNonExemptEncryption=false` to `Info.plist` to satisfy App Store Connect export compliance gate automatically
+
+---
+
 ## [2.6.0] — 2026-07-23 (Project summary update — build 137)
 
 ### Changed
